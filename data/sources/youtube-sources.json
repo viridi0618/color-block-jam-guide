@@ -1,0 +1,18 @@
+{
+  "sources": [
+    {
+      "sourceId": "cheriegaming-elevator",
+      "type": "playlist",
+      "url": "https://www.youtube.com/playlist?list=PLclTANjsXi_M",
+      "playlistId": "PLclTANjsXi_M",
+      "channelName": "CherieGaming",
+      "priority": 100,
+      "role": "primary",
+      "qualityStatus": "preferred",
+      "defaultAspectRatio": "16:9",
+      "enabled": true,
+      "importFile": "data/import/creator-main.json",
+      "notes": "User-provided public playlist; exact level numbers are parsed from video titles."
+    }
+  ]
+}
