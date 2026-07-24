@@ -10,7 +10,7 @@
     "build": "vinext build",
     "build:vercel": "next build",
     "start": "vinext start",
-    "test": "node --test tests/site.test.mjs",
+    "test": "tsx --test tests/site.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "typecheck": "tsc --noEmit",
     "fetch:youtube": "node scripts/fetch-youtube-playlist.ts",
