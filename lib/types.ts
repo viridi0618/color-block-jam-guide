@@ -1,4 +1,5 @@
 export type AspectRatio = "16:9" | "9:16" | "4:3";
+export type MatchType = "primary-label" | "parenthetical-label";
 
 export interface WalkthroughVideo {
   videoId: string;
@@ -9,6 +10,9 @@ export interface WalkthroughVideo {
   publishedAt: string | null;
   thumbnailUrl: string;
   aspectRatio: AspectRatio;
+  matchType: MatchType;
+  mappingGroupId: string;
+  sourceLevelIds: number[];
 }
 
 export interface LevelRecord {
@@ -17,6 +21,8 @@ export interface LevelRecord {
   status: "approved" | "candidate" | "unavailable";
   primaryVideo: WalkthroughVideo;
   alternativeVideos: WalkthroughVideo[];
+  matchType: MatchType;
+  sourceLevelIds: number[];
 }
 
 export interface LevelRange {

@@ -13,6 +13,7 @@
     "test": "node --test tests/site.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "typecheck": "tsc --noEmit",
+    "fetch:youtube": "node scripts/fetch-youtube-playlist.ts",
     "ingest:youtube": "node scripts/import-youtube-sources.ts",
     "check:levels": "node scripts/check-levels.ts",
     "db:generate": "drizzle-kit generate"
