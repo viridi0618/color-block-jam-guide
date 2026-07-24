@@ -1,9 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import { siteUrl } from "@/lib/site-url";
 import "./globals.css";
-
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://color-block-jam-guide.example";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

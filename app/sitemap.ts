@@ -1,9 +1,8 @@
 import type { MetadataRoute } from "next";
 import { levels, levelRanges } from "@/lib/levels";
+import { siteUrl } from "@/lib/site-url";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://color-block-jam-guide.example";
   const lastModified = new Date("2026-07-24");
   return [
     { url: siteUrl, lastModified, changeFrequency: "weekly", priority: 1 },

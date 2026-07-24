@@ -10,6 +10,7 @@ import {
   getRangeForLevel,
   levels,
 } from "@/lib/levels";
+import { siteUrl } from "@/lib/site-url";
 
 export const dynamicParams = false;
 
@@ -56,8 +57,6 @@ export default async function LevelPage({
   const adjacent = getAdjacentLevels(levelId);
   const range = getRangeForLevel(levelId);
   if (!range) notFound();
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://color-block-jam-guide.example";
   const canonicalUrl = `${siteUrl}/level/${levelId}`;
   const video = level.primaryVideo;
   const videoSchema = {
