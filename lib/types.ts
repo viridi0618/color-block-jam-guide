@@ -13,6 +13,8 @@ export interface WalkthroughVideo {
   matchType: MatchType;
   mappingGroupId: string;
   sourceLevelIds: number[];
+  rangeStart?: number;
+  rangeEnd?: number;
 }
 
 export interface LevelRecord {
@@ -23,6 +25,9 @@ export interface LevelRecord {
   alternativeVideos: WalkthroughVideo[];
   matchType: MatchType;
   sourceLevelIds: number[];
+  isRangeVideo?: boolean;
+  rangeStart?: number;
+  rangeEnd?: number;
 }
 
 export interface LevelRange {
