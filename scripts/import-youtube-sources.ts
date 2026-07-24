@@ -1,5 +1,10 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import {
+  parseLevelTitle,
+  rankCandidates,
+} from "../lib/level-parser.ts";
+import type { Rankable } from "../lib/level-parser.ts";
 
 type AspectRatio = "16:9" | "9:16" | "4:3";
 type MatchType = "primary-label" | "parenthetical-label";
@@ -58,149 +63,27 @@ type Candidate = {
   rangeStart?: number;
   rangeEnd?: number;
   isRangeVideo: boolean;
+  playlistPosition?: number;
 };
 
 const projectRoot = resolve(import.meta.dirname, "..");
 const readJson = async <T>(path: string): Promise<T> =>
   JSON.parse((await readFile(resolve(projectRoot, path), "utf8")).replace(/^\uFEFF/, "")) as T;
+
+/**
+ * Atomic write: write to tmp file, then rename over final file.
+ * If rename fails, the old file is preserved.
+ * Cleans up stale tmp files on success.
+ */
 const writeJsonAtomic = async (path: string, value: unknown) => {
   const absolute = resolve(projectRoot, path);
   const tmp = absolute + ".tmp";
   await mkdir(dirname(absolute), { recursive: true });
   await writeFile(tmp, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-  await writeFile(absolute, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  await rename(tmp, absolute);
+  // Cleanup stale tmp in case of previous crash
+  try { await unlink(tmp); } catch { /* already renamed */ }
 };
-
-// ─── Title Parsing ────────────────────────────────────────────────
-
-// Range pattern: Level A-B (must be checked BEFORE single-level patterns)
-const RANGE_PATTERN =
-  /\bColor\s*Block\s*Jam\s*[-–—:]?\s*(?:Levels?|Lvls?)\s*#?\s*(\d{1,5})\s*[-–—]\s*(\d{1,5})\b/i;
-
-// Single-level patterns
-const LEVEL_PATTERN =
-  /\bColor\s*Block\s*Jam\s*[-–—:]?\s*(?:Level|Lvl)\s*#?\s*(\d{1,5})(?:\s*\(\s*(\d{1,5})\s*\))?\b/i;
-const PARENTHETICAL_PATTERN =
-  /\bColor\s*Block\s*Jam\s*[-–—:]?\s*(?:Level|Lvl)\s*#?\s*(\d{1,5})\s*\(\s*(\d{1,5})\s*\)/i;
-
-interface RangeParseResult {
-  type: "range";
-  rangeStart: number;
-  rangeEnd: number;
-  sourceLevelIds: number[];
-}
-
-interface SingleParseResult {
-  type: "single";
-  primaryLevelId: number;
-  alternateLevelId: number | null;
-  sourceLevelIds: number[];
-}
-
-type ParseResult = RangeParseResult | SingleParseResult | null;
-
-export function parseLevelTitle(title: string): ParseResult {
-  // 1. Check range format FIRST (Level A-B)
-  const rangeMatch = title.match(RANGE_PATTERN);
-  if (rangeMatch) {
-    const a = Number(rangeMatch[1]);
-    const b = Number(rangeMatch[2]);
-    // Validate range
-    if (a > 0 && b > 0 && b >= a && (b - a + 1) <= 50) {
-      const sourceLevelIds: number[] = [];
-      for (let i = a; i <= b; i++) sourceLevelIds.push(i);
-      return { type: "range", rangeStart: a, rangeEnd: b, sourceLevelIds };
-    }
-    // Invalid range: fall through to single-number parsing
-  }
-
-  // 2. Check single-number formats
-  const strict = title.match(LEVEL_PATTERN);
-  if (!strict) return null;
-
-  const parenthetical = title.match(PARENTHETICAL_PATTERN);
-  const primaryLevelId = Number(strict[1]);
-  // Reject level 0
-  if (primaryLevelId <= 0) return null;
-
-  const alternateLevelId = parenthetical ? Number(parenthetical[2]) : null;
-  return {
-    type: "single",
-    primaryLevelId,
-    alternateLevelId,
-    sourceLevelIds: alternateLevelId
-      ? [primaryLevelId, alternateLevelId]
-      : [primaryLevelId],
-  };
-}
-
-// ─── Video Ranking ─────────────────────────────────────────────────
-
-const DEMOTION_WORDS = [
-  /\bwithout\b/i,
-  /\bchallenge\b/i,
-  /\bwin\s*streak\b/i,
-  /\bno[\s-]?power[\s-]?up\b/i,
-  /\bno[\s-]?powerup\b/i,
-  /\bspeedrun\b/i,
-  /\bhard\s*mode\b/i,
-  /\bno[\s-]?booster\b/i,
-  /\bno[\s-]?vacuum\b/i,
-  /\bspecial\s*challenge\b/i,
-];
-
-const STANDARD_TITLE_PATTERNS = [
-  /\bLevel\s+\d+\s+Solution\s+Walkthrough\b/i,
-  /\bLevel\s+\d+\s+Walkthrough\b/i,
-  /\bLevel\s+\d+\s+Solution\b/i,
-  /\bLevel\s+\d+\s+Guide\b/i,
-  /\bLevels?\s+\d+[\s-]+\d+\s+Solution\s+Walkthrough\b/i,
-];
-
-function isDemoted(title: string): boolean {
-  return DEMOTION_WORDS.some((pattern) => pattern.test(title));
-}
-
-function isStandardTitle(title: string): boolean {
-  return STANDARD_TITLE_PATTERNS.some((pattern) => pattern.test(title));
-}
-
-function scoreVideo(candidate: Candidate): number {
-  let score = 0;
-
-  // 1. Primary-label has highest priority
-  if (candidate.matchType === "primary-label") score += 1000;
-
-  // 2. Source priority
-  score += candidate.priority;
-
-  // 3. Standard walkthrough title bonus
-  if (isStandardTitle(candidate.title)) score += 200;
-
-  // 4. Demotion penalty
-  if (isDemoted(candidate.title)) score -= 300;
-
-  // 5. Embeddable and available
-  if (candidate.embeddable === false) score -= 10000;
-  if (!candidate.videoAvailable) score -= 10000;
-
-  // 6. Published date (newer = higher, null = lowest)
-  if (candidate.publishedAt) score += 1;
-
-  return score;
-}
-
-function rankCandidates(a: Candidate, b: Candidate): number {
-  const scoreDiff = scoreVideo(b) - scoreVideo(a);
-  if (scoreDiff !== 0) return scoreDiff;
-
-  // PublishedAt tiebreaker: newer first
-  const pubDiff = (b.publishedAt ?? "").localeCompare(a.publishedAt ?? "");
-  if (pubDiff !== 0) return pubDiff;
-
-  // Playlist order as final stable tiebreaker
-  return 0;
-}
 
 const isoDate = (timestamp?: number) =>
   timestamp ? new Date(timestamp * 1000).toISOString() : null;
@@ -224,14 +107,14 @@ const privateOrDeleted: Array<Record<string, unknown>> = [];
 const conflicts: Conflict[] = [];
 const rejectedRanges: Array<Record<string, unknown>> = [];
 const seenEntries = new Set<string>();
-let playlistEntries = 0;
+let rawPlaylistEntries = 0;
 let rangeTitleCount = 0;
 let rejectedRangeCount = 0;
 let rangeExpansions = 0;
 
 for (const source of enabled) {
   const imported = await readJson<{ entries?: RawEntry[]; videoMetadata?: Record<string, RawEntry> }>(source.importFile);
-  playlistEntries += imported.entries?.length ?? 0;
+  rawPlaylistEntries += imported.entries?.length ?? 0;
   const videoMeta = imported.videoMetadata ?? {};
 
   for (const entry of imported.entries ?? []) {
@@ -266,6 +149,7 @@ for (const source of enabled) {
       : entry.availability
         ? entry.availability !== "private"
         : true;
+    const playlistPosition = entry.playlist_index ?? undefined;
 
     const parsed = parseLevelTitle(title);
 
@@ -279,36 +163,22 @@ for (const source of enabled) {
       continue;
     }
 
+    if (parsed.type === "rejected-range") {
+      rejectedRanges.push({
+        videoId,
+        title,
+        rangeStart: parsed.rangeStart,
+        rangeEnd: parsed.rangeEnd,
+        reason: parsed.reason,
+      });
+      rejectedRangeCount++;
+      continue;
+    }
+
     if (parsed.type === "range") {
       rangeTitleCount++;
       const { rangeStart, rangeEnd } = parsed;
-      const rangeSize = rangeEnd - rangeStart + 1;
-
-      // Validate range
-      if (rangeStart <= 0 || rangeEnd <= 0 || rangeEnd < rangeStart) {
-        rejectedRanges.push({
-          videoId,
-          title,
-          rangeStart,
-          rangeEnd,
-          reason: "Invalid range (negative, zero, or reversed)",
-        });
-        rejectedRangeCount++;
-        continue;
-      }
-      if (rangeSize > 50) {
-        rejectedRanges.push({
-          videoId,
-          title,
-          rangeStart,
-          rangeEnd,
-          reason: `Range too large (${rangeSize} > 50)`,
-        });
-        rejectedRangeCount++;
-        continue;
-      }
-
-      rangeExpansions += rangeSize;
+      rangeExpansions += (rangeEnd - rangeStart + 1);
 
       for (let i = rangeStart; i <= rangeEnd; i++) {
         mappings.push({
@@ -330,6 +200,7 @@ for (const source of enabled) {
           rangeStart,
           rangeEnd,
           isRangeVideo: true,
+          playlistPosition,
         });
       }
     } else {
@@ -352,6 +223,7 @@ for (const source of enabled) {
           embeddable,
           videoAvailable,
           isRangeVideo: false,
+          playlistPosition,
         });
       });
     }
@@ -390,8 +262,22 @@ const publicVideo = (candidate: Candidate) => ({
 const levels = Array.from(byLevel.entries())
   .sort(([a], [b]) => a - b)
   .map(([levelId, candidates]) => {
-    // Sort by ranking
-    candidates.sort(rankCandidates);
+    // Sort by ranking using the extracted rankCandidates
+    const rankable: Rankable[] = candidates.map((c) => ({
+      matchType: c.matchType,
+      priority: c.priority,
+      title: c.title,
+      embeddable: c.embeddable,
+      videoAvailable: c.videoAvailable,
+      publishedAt: c.publishedAt,
+      playlistPosition: c.playlistPosition,
+      videoId: c.videoId,
+    }));
+    candidates.sort((a, b) => {
+      const ra = rankable.find((r) => r.videoId === a.videoId)!;
+      const rb = rankable.find((r) => r.videoId === b.videoId)!;
+      return rankCandidates(ra, rb);
+    });
 
     // Filter out unembeddable and unavailable videos
     const usable = candidates.filter(
@@ -408,6 +294,14 @@ const levels = Array.from(byLevel.entries())
       );
       if (overrideVideo && overrideVideo.embeddable !== false && overrideVideo.videoAvailable) {
         primary = overrideVideo;
+      } else {
+        conflicts.push({
+          type: "override_not_usable",
+          severity: "warning",
+          videoId: override.primaryVideoId,
+          levelId,
+          reason: `Override video ${override.primaryVideoId} for level ${levelId} is not usable`,
+        });
       }
     }
 
@@ -490,6 +384,26 @@ const levels = Array.from(byLevel.entries())
       }
     }
 
+    // Check VideoObject fields
+    if (primary && !primary.publishedAt) {
+      conflicts.push({
+        type: "missing_published_at",
+        severity: "warning",
+        levelId,
+        videoId: primary.videoId,
+        reason: `Level ${levelId} primary video has no publishedAt`,
+      });
+    }
+    if (primary && primary.durationSeconds == null) {
+      conflicts.push({
+        type: "missing_duration",
+        severity: "warning",
+        levelId,
+        videoId: primary.videoId,
+        reason: `Level ${levelId} primary video has no duration`,
+      });
+    }
+
     return {
       levelId,
       slug: `/level/${levelId}`,
@@ -535,51 +449,8 @@ for (const level of levels) {
   seenSlugs.set(level.slug, level.levelId);
 }
 
-// Check for missing structured data fields
-for (const level of levels) {
-  if (!level.primaryVideo) continue;
-  const pv = level.primaryVideo;
-  if (!pv.title) {
-    conflicts.push({
-      type: "missing_video_title",
-      severity: "error",
-      levelId: level.levelId,
-      videoId: pv.videoId,
-      reason: `Level ${level.levelId} primary video has no title`,
-    });
-  }
-  if (!pv.thumbnailUrl) {
-    conflicts.push({
-      type: "missing_thumbnail",
-      severity: "warning",
-      levelId: level.levelId,
-      videoId: pv.videoId,
-      reason: `Level ${level.levelId} primary video has no thumbnail`,
-    });
-  }
-  if (!pv.publishedAt) {
-    conflicts.push({
-      type: "missing_published_at",
-      severity: "warning",
-      levelId: level.levelId,
-      videoId: pv.videoId,
-      reason: `Level ${level.levelId} primary video has no publishedAt`,
-    });
-  }
-  if (pv.durationSeconds == null) {
-    conflicts.push({
-      type: "missing_duration",
-      severity: "warning",
-      levelId: level.levelId,
-      videoId: pv.videoId,
-      reason: `Level ${level.levelId} primary video has no duration`,
-    });
-  }
-}
-
 // ─── Write output ──────────────────────────────────────────────────
 
-// Write to tmp first, then rename for atomicity
 await Promise.all([
   writeJsonAtomic("data/candidates/levels.json", mappings),
   writeJsonAtomic("data/levels/all-levels.json", levels.filter((l) => l.primaryVideo != null)),
@@ -593,7 +464,7 @@ await Promise.all([
 
 // ─── Summary ────────────────────────────────────────────────────────
 
-const uniqueVideos = new Set(mappings.map((mapping) => mapping.videoId));
+const uniqueVideoIds = new Set(mappings.map((mapping) => mapping.videoId));
 const dualVideos = new Set(
   mappings
     .filter((mapping) => mapping.sourceLevelIds.length === 2)
@@ -606,15 +477,15 @@ const rangeVideos = new Set(
   mappings.filter((m) => m.isRangeVideo).map((m) => m.videoId),
 );
 
-console.log(`Playlist entries: ${playlistEntries}`);
+console.log(`Raw playlist entries: ${rawPlaylistEntries}`);
 console.log(`Unique video IDs (seen): ${seenEntries.size}`);
-console.log(`Valid video IDs (mapped): ${uniqueVideos.size}`);
-console.log(`Single-number titles: ${uniqueVideos.size - dualVideos.size - rangeVideos.size}`);
+console.log(`Valid video IDs (mapped): ${uniqueVideoIds.size}`);
+console.log(`Candidate mappings: ${mappings.length}`);
+console.log(`Single-number titles: ${uniqueVideoIds.size - dualVideos.size - rangeVideos.size}`);
 console.log(`Dual-number titles: ${dualVideos.size}`);
 console.log(`Range titles: ${rangeTitleCount}`);
 console.log(`Range expansions: ${rangeExpansions}`);
 console.log(`Rejected ranges: ${rejectedRangeCount}`);
-console.log(`Unique mapped level IDs: ${levels.length}`);
 console.log(`Approved level pages: ${approvedLevels.length}`);
 console.log(`Duplicate level candidates: ${multipleCandidates.length}`);
 console.log(`Unmatched titles: ${unmatched.length}`);

@@ -4,10 +4,10 @@ import test from "node:test";
 
 const root = new URL("../", import.meta.url);
 
-// ─── Range Parsing Tests ───────────────────────────────────────────
+// ─── Range Parsing Tests (real parser calls) ────────────────────────
 
 test("range parser: Level 1-10 expands to 1 through 10 inclusive", async () => {
-  const { parseLevelTitle } = await import("../scripts/import-youtube-sources.ts");
+  const { parseLevelTitle } = await import("../lib/level-parser.ts");
   const result = parseLevelTitle("Color Block Jam Level 1-10 Solution Walkthrough");
   assert.ok(result);
   assert.strictEqual(result.type, "range");
@@ -20,48 +20,58 @@ test("range parser: Level 1-10 expands to 1 through 10 inclusive", async () => {
 });
 
 test("range parser: Level 1 - 10 with spaces", async () => {
-  const { parseLevelTitle } = await import("../scripts/import-youtube-sources.ts");
+  const { parseLevelTitle } = await import("../lib/level-parser.ts");
   const result = parseLevelTitle("Color Block Jam Level 1 - 10 Solution Walkthrough");
   assert.ok(result);
   assert.strictEqual(result.type, "range");
 });
 
 test("range parser: Levels 1-10 (plural)", async () => {
-  const { parseLevelTitle } = await import("../scripts/import-youtube-sources.ts");
+  const { parseLevelTitle } = await import("../lib/level-parser.ts");
   const result = parseLevelTitle("Color Block Jam Levels 1-10 Solution Walkthrough");
   assert.ok(result);
   assert.strictEqual(result.type, "range");
 });
 
-test("range parser: reversed range is rejected", async () => {
-  const { parseLevelTitle } = await import("../scripts/import-youtube-sources.ts");
+test("range parser: reversed range is rejected (not single)", async () => {
+  const { parseLevelTitle } = await import("../lib/level-parser.ts");
   const result = parseLevelTitle("Color Block Jam Level 10-1 Solution Walkthrough");
   assert.ok(result);
-  assert.strictEqual(result.type, "single");
+  assert.strictEqual(result.type, "rejected-range");
+  if (result.type === "rejected-range") {
+    assert.match(result.reason, /Reversed/);
+  }
 });
 
 test("range parser: Level 0 range is rejected", async () => {
-  const { parseLevelTitle } = await import("../scripts/import-youtube-sources.ts");
+  const { parseLevelTitle } = await import("../lib/level-parser.ts");
   const result = parseLevelTitle("Color Block Jam Level 0-10 Solution Walkthrough");
-  assert.strictEqual(result, null);
+  assert.ok(result);
+  assert.strictEqual(result.type, "rejected-range");
+  if (result.type === "rejected-range") {
+    assert.match(result.reason, /non-positive/);
+  }
 });
 
-test("range parser: range > 50 is rejected", async () => {
-  const { parseLevelTitle } = await import("../scripts/import-youtube-sources.ts");
+test("range parser: range > 50 is rejected (not single)", async () => {
+  const { parseLevelTitle } = await import("../lib/level-parser.ts");
   const result = parseLevelTitle("Color Block Jam Level 1-60 Solution Walkthrough");
   assert.ok(result);
-  assert.strictEqual(result.type, "single");
+  assert.strictEqual(result.type, "rejected-range");
+  if (result.type === "rejected-range") {
+    assert.match(result.reason, /too large/i);
+  }
 });
 
 test("range parser: range parsing takes priority over single-level", async () => {
-  const { parseLevelTitle } = await import("../scripts/import-youtube-sources.ts");
+  const { parseLevelTitle } = await import("../lib/level-parser.ts");
   const result = parseLevelTitle("Color Block Jam Level 1-10 Solution Walkthrough");
   assert.ok(result);
   assert.strictEqual(result.type, "range");
 });
 
 test("range parser: single-level still works", async () => {
-  const { parseLevelTitle } = await import("../scripts/import-youtube-sources.ts");
+  const { parseLevelTitle } = await import("../lib/level-parser.ts");
   const result = parseLevelTitle("Color Block Jam Level 16 Solution Walkthrough");
   assert.ok(result);
   assert.strictEqual(result.type, "single");
@@ -72,35 +82,178 @@ test("range parser: single-level still works", async () => {
 });
 
 test("range parser: ordinary hyphen in title is not a range", async () => {
-  const { parseLevelTitle } = await import("../scripts/import-youtube-sources.ts");
+  const { parseLevelTitle } = await import("../lib/level-parser.ts");
   const result = parseLevelTitle("Color Block Jam Level 25 Walkthrough");
   assert.ok(result);
   assert.strictEqual(result.type, "single");
 });
 
-// ─── Video Ranking Tests ────────────────────────────────────────────
+// ─── Video Ranking Tests (real ranker calls) ────────────────────────
 
-test("video ranking: standard walkthrough beats without", async () => {
-  const { parseLevelTitle } = await import("../scripts/import-youtube-sources.ts");
-  const standard = "Color Block Jam Level 16 Solution Walkthrough";
-  const without = "Color Block Jam Level 16 Without Vacuum Power-Up";
-  const s = parseLevelTitle(standard);
-  const w = parseLevelTitle(without);
-  assert.ok(s);
-  assert.ok(w);
-  assert.strictEqual(s.type, "single");
-  assert.strictEqual(w.type, "single");
+test("video ranking: standard walkthrough scores higher than without", async () => {
+  const { isDemoted, isStandardTitle, scoreVideo } = await import("../lib/level-parser.ts");
+  const standard = {
+    matchType: "primary-label",
+    title: "Color Block Jam Level 16 Solution Walkthrough",
+    embeddable: true,
+    videoAvailable: true,
+    publishedAt: "2025-01-01T00:00:00Z",
+    priority: 0,
+    videoId: "aaa",
+  };
+  const without = {
+    matchType: "primary-label",
+    title: "Color Block Jam Level 16 Without Vacuum Power-Up",
+    embeddable: true,
+    videoAvailable: true,
+    publishedAt: "2025-01-01T00:00:00Z",
+    priority: 0,
+    videoId: "bbb",
+  };
+  assert.ok(isStandardTitle(standard.title));
+  assert.ok(isDemoted(without.title));
+  const standardScore = scoreVideo(standard);
+  const withoutScore = scoreVideo(without);
+  assert.ok(standardScore > withoutScore, `Standard ${standardScore} > without ${withoutScore}`);
 });
 
 test("video ranking: demotion words are detected", async () => {
-  const levels = JSON.parse(
-    await readFile(new URL("data/levels/all-levels.json", root), "utf8"),
-  );
-  const level16 = levels.find((l) => l.levelId === 16);
-  if (level16) {
-    assert.ok(level16.primaryVideo);
-    assert.ok(level16.primaryVideo.title);
-  }
+  const { isDemoted } = await import("../lib/level-parser.ts");
+  assert.ok(isDemoted("Color Block Jam Level 16 Without Vacuum Power-Up"));
+  assert.ok(isDemoted("Color Block Jam Level 16 Challenge"));
+  assert.ok(isDemoted("Color Block Jam Level 16 Speedrun"));
+  assert.ok(isDemoted("Color Block Jam Level 16 No Powerup"));
+  assert.ok(isDemoted("Color Block Jam Level 16 Hard Mode"));
+  assert.ok(isDemoted("Color Block Jam Level 16 No Booster"));
+  assert.ok(isDemoted("Color Block Jam Level 16 No Vacuum"));
+  assert.ok(isDemoted("Color Block Jam Level 16 Win Streak"));
+  assert.ok(isDemoted("Color Block Jam Level 16 Special Challenge"));
+  assert.ok(!isDemoted("Color Block Jam Level 16 Solution Walkthrough"));
+});
+
+test("video ranking: embeddable=false is excluded", async () => {
+  const { scoreVideo } = await import("../lib/level-parser.ts");
+  const embeddable = {
+    matchType: "primary-label",
+    title: "Color Block Jam Level 16 Solution Walkthrough",
+    embeddable: true,
+    videoAvailable: true,
+    publishedAt: "2025-01-01T00:00:00Z",
+    priority: 0,
+    videoId: "aaa",
+  };
+  const notEmbeddable = {
+    matchType: "primary-label",
+    title: "Color Block Jam Level 16 Solution Walkthrough",
+    embeddable: false,
+    videoAvailable: true,
+    publishedAt: "2025-01-01T00:00:00Z",
+    priority: 0,
+    videoId: "bbb",
+  };
+  assert.ok(scoreVideo(embeddable) > scoreVideo(notEmbeddable), "Embeddable should score higher than non-embeddable");
+});
+
+test("video ranking: unavailable video is excluded", async () => {
+  const { scoreVideo } = await import("../lib/level-parser.ts");
+  const available = {
+    matchType: "primary-label",
+    title: "Color Block Jam Level 16 Solution Walkthrough",
+    embeddable: true,
+    videoAvailable: true,
+    publishedAt: "2025-01-01T00:00:00Z",
+    priority: 0,
+    videoId: "aaa",
+  };
+  const unavailable = {
+    matchType: "primary-label",
+    title: "Color Block Jam Level 16 Solution Walkthrough",
+    embeddable: true,
+    videoAvailable: false,
+    publishedAt: "2025-01-01T00:00:00Z",
+    priority: 0,
+    videoId: "bbb",
+  };
+  assert.ok(scoreVideo(available) > scoreVideo(unavailable), "Available should score higher than unavailable");
+});
+
+test("video ranking: publishedAt used as tiebreaker", async () => {
+  const { rankCandidates } = await import("../lib/level-parser.ts");
+  const newer = {
+    matchType: "primary-label",
+    title: "Color Block Jam Level 16 Solution Walkthrough",
+    embeddable: true,
+    videoAvailable: true,
+    publishedAt: "2025-06-01T00:00:00Z",
+    priority: 0,
+    videoId: "aaa",
+  };
+  const older = {
+    matchType: "primary-label",
+    title: "Color Block Jam Level 16 Solution Walkthrough",
+    embeddable: true,
+    videoAvailable: true,
+    publishedAt: "2025-01-01T00:00:00Z",
+    priority: 0,
+    videoId: "bbb",
+  };
+  // newer should sort before older (negative return from rankCandidates)
+  const result = rankCandidates(newer, older);
+  assert.ok(result < 0, `Newer should sort before older, got ${result}`);
+});
+
+test("video ranking: playlistPosition used as tiebreaker after publishedAt", async () => {
+  const { rankCandidates } = await import("../lib/level-parser.ts");
+  const earlier = {
+    matchType: "primary-label",
+    title: "Color Block Jam Level 16 Solution Walkthrough",
+    embeddable: true,
+    videoAvailable: true,
+    publishedAt: "2025-01-01T00:00:00Z",
+    priority: 0,
+    videoId: "aaa",
+    playlistPosition: 0,
+  };
+  const later = {
+    matchType: "primary-label",
+    title: "Color Block Jam Level 16 Solution Walkthrough",
+    embeddable: true,
+    videoAvailable: true,
+    publishedAt: "2025-01-01T00:00:00Z",
+    priority: 0,
+    videoId: "bbb",
+    playlistPosition: 5,
+  };
+  // earlier position should sort before later
+  const result = rankCandidates(earlier, later);
+  assert.ok(result < 0, `Earlier playlist position should sort first, got ${result}`);
+});
+
+test("video ranking: videoId is final stable tiebreaker", async () => {
+  const { rankCandidates } = await import("../lib/level-parser.ts");
+  const a = {
+    matchType: "primary-label",
+    title: "Same Title",
+    embeddable: true,
+    videoAvailable: true,
+    publishedAt: "2025-01-01T00:00:00Z",
+    priority: 0,
+    videoId: "aaa",
+    playlistPosition: 0,
+  };
+  const b = {
+    matchType: "primary-label",
+    title: "Same Title",
+    embeddable: true,
+    videoAvailable: true,
+    publishedAt: "2025-01-01T00:00:00Z",
+    priority: 0,
+    videoId: "bbb",
+    playlistPosition: 0,
+  };
+  // aaa should sort before bbb
+  const result = rankCandidates(a, b);
+  assert.ok(result < 0, `"aaa" should sort before "bbb", got ${result}`);
 });
 
 // ─── Share Behavior Tests ───────────────────────────────────────────
@@ -239,7 +392,8 @@ test("level data has Levels 1-10", async () => {
 test("level data entries are dynamic, not hardcoded", async () => {
   const checkLevels = await readFile(new URL("scripts/check-levels.ts", root), "utf8");
   assert.doesNotMatch(checkLevels, /Playlist entries:\s*4093/);
-  assert.match(checkLevels, /candidates\.length/);
+  assert.match(checkLevels, /rawPlaylistEntries/);
+  assert.match(checkLevels, /imported\.entries/);
 });
 
 test("conflicts are empty or contain real conflicts", async () => {
@@ -282,4 +436,16 @@ test("level page shows range hint for range videos", async () => {
   assert.match(levelPage, /This video covers Levels/);
   assert.match(levelPage, /rangeStart/);
   assert.match(levelPage, /rangeEnd/);
+});
+
+// ─── Rejected ranges file exists ────────────────────────────────────
+
+test("rejected-ranges.json is written", async () => {
+  const rejected = JSON.parse(
+    await readFile(new URL("data/review/rejected-ranges.json", root), "utf8"),
+  );
+  assert.ok(Array.isArray(rejected));
+  for (const r of rejected) {
+    assert.ok(r.reason);
+  }
 });
