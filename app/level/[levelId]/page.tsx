@@ -88,7 +88,12 @@ export default async function LevelPage({ params }: { params: Promise<{ levelId:
           {level.alternativeVideos.map((alternative) => <AlternativeVideo video={alternative} key={alternative.videoId} />)}
         </section>
       ) : null}
-      {dual ? (
+      {level.isRangeVideo && level.rangeStart != null && level.rangeEnd != null ? (
+        <aside className="dual-note">
+          This video covers Levels {level.rangeStart}–{level.rangeEnd}.<br />
+          Level numbering or layouts may vary after game updates.
+        </aside>
+      ) : dual ? (
         <aside className="dual-note">
           The video creator labels this walkthrough for Levels {labels[0]} and {labels[1]}.<br />
           Level numbering or layouts may vary after game updates.
