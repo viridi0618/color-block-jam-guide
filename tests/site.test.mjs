@@ -182,20 +182,18 @@ test("long-tail intent pages use official links and FAQ schema", async () => {
 
 // ─── Fonts ──────────────────────────────────────────────────────────
 
-test("fonts are loaded via next/font/google", async () => {
+test("fonts are loaded via Google Fonts CSS link", async () => {
   const layout = await readFile(new URL("app/layout.tsx", root), "utf8");
-  assert.match(layout, /next\/font\/google/);
+  assert.match(layout, /fonts\.googleapis\.com/);
   assert.match(layout, /Fredoka/);
   assert.match(layout, /Nunito/);
-  assert.match(layout, /--font-fredoka/);
-  assert.match(layout, /--font-nunito/);
-  assert.match(layout, /display: "swap"/);
+  assert.match(layout, /display=swap/);
 });
 
-test("font variables are applied to body", async () => {
-  const layout = await readFile(new URL("app/layout.tsx", root), "utf8");
-  assert.match(layout, /fredoka\.variable/);
-  assert.match(layout, /nunito\.variable/);
+test("font variables are defined in CSS", async () => {
+  const css = await readFile(new URL("app/globals.css", root), "utf8");
+  assert.match(css, /--font-fredoka/);
+  assert.match(css, /--font-nunito/);
 });
 
 // ─── SOURCE_NOTES ──────────────────────────────────────────────────

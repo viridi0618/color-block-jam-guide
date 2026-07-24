@@ -1,22 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
-import { Fredoka, Nunito } from "next/font/google";
 import { siteUrl } from "@/lib/site-url";
 import "./globals.css";
-
-const fredoka = Fredoka({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-fredoka",
-  display: "swap",
-});
-
-const nunito = Nunito({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-nunito",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -54,7 +39,12 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${fredoka.variable} ${nunito.variable}`}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      </head>
+      <body>
         <header className="site-header">
           <div className="shell header-inner">
             <Link href="/" className="brand" aria-label="Color Block Jam Guide home">

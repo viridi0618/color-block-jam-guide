@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 :root {
+  --font-fredoka: "Fredoka", ui-rounded, "SF Pro Rounded", "Segoe UI", sans-serif;
+  --font-nunito: "Nunito", ui-rounded, "SF Pro Rounded", "Segoe UI", sans-serif;
   --page: #fffafd;
   --surface: #fff;
   --surface-pink: #fff1f6;
