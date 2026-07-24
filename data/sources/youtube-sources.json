@@ -1,18 +1,32 @@
 {
   "sources": [
     {
-      "sourceId": "cheriegaming-elevator",
+      "sourceId": "cheriegaming-main-color-block-jam",
       "type": "playlist",
-      "url": "https://www.youtube.com/playlist?list=PLclTANjsXi_M",
-      "playlistId": "PLclTANjsXi_M",
+      "url": "https://www.youtube.com/playlist?list=PLEOnLO5L7cCcB4czXa_vNF0qCjik7RUpK",
+      "playlistId": "PLEOnLO5L7cCcB4czXa_vNF0qCjik7RUpK",
       "channelName": "CherieGaming",
       "priority": 100,
       "role": "primary",
       "qualityStatus": "preferred",
       "defaultAspectRatio": "16:9",
       "enabled": true,
+      "importFile": "data/import/cheriegaming-main.json",
+      "notes": "CherieGaming main Color Block Jam playlist. Exact level labels are parsed from titles."
+    },
+    {
+      "sourceId": "cheriegaming-elevator-legacy",
+      "type": "playlist",
+      "url": "https://www.youtube.com/playlist?list=PLclTANjsXi_M",
+      "playlistId": "PLclTANjsXi_M",
+      "channelName": "CherieGaming",
+      "priority": 50,
+      "role": "gap-fill",
+      "qualityStatus": "fallback",
+      "defaultAspectRatio": "16:9",
+      "enabled": false,
       "importFile": "data/import/creator-main.json",
-      "notes": "User-provided public playlist; exact level numbers are parsed from video titles."
+      "notes": "Disabled after confirming all 50 video IDs are already present in the main playlist."
     }
   ]
 }

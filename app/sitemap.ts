@@ -12,6 +12,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.9,
     },
+    ...[
+      "/download",
+      "/play-on-pc",
+      "/play-online",
+      "/about-color-block-jam",
+      "/faq",
+    ].map((path) => ({
+      url: `${siteUrl}${path}`,
+      lastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.65,
+    })),
     ...levelRanges.map((range) => ({
       url: `${siteUrl}${range.slug}`,
       lastModified,

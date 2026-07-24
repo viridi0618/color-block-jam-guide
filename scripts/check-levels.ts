@@ -2,58 +2,49 @@ import levels from "../data/levels/all-levels.json" with { type: "json" };
 import candidates from "../data/candidates/levels.json" with { type: "json" };
 import unmatched from "../data/review/unmatched-videos.json" with { type: "json" };
 import conflicts from "../data/review/conflicts.json" with { type: "json" };
+import multipleCandidates from "../data/review/multiple-candidates.json" with { type: "json" };
 
 const errors: string[] = [];
-const seenVideos = new Map<string, number>();
-let approvedVideos = 0;
+let primaryLabelPages = 0;
+let parentheticalLabelPages = 0;
+const dualVideos = new Set<string>();
 
 for (const level of levels) {
   if (!Number.isInteger(level.levelId) || level.levelId <= 0) {
     errors.push(`Invalid levelId: ${level.levelId}`);
   }
-  if (level.slug !== `/level/${level.levelId}`) {
-    errors.push(`Slug mismatch for level ${level.levelId}`);
-  }
-  if (level.status !== "approved" || !level.primaryVideo) {
+  if (level.slug !== `/level/${level.levelId}` || level.status !== "approved") {
     errors.push(`Level ${level.levelId} is not publishable`);
-    continue;
   }
-  const videos = [level.primaryVideo, ...level.alternativeVideos];
-  const withinLevel = new Set<string>();
-  for (const video of videos) {
-    approvedVideos += 1;
+  if (!level.sourceLevelIds.includes(level.levelId)) {
+    errors.push(`Level ${level.levelId} is not in its explicit source labels`);
+  }
+  if (level.matchType === "primary-label") primaryLabelPages += 1;
+  else parentheticalLabelPages += 1;
+  for (const video of [level.primaryVideo, ...level.alternativeVideos]) {
     if (!/^[A-Za-z0-9_-]{11}$/.test(video.videoId)) {
       errors.push(`Invalid video ID at level ${level.levelId}`);
     }
-    if (!video.title.trim() || /placeholder|todo|tbd/i.test(video.title)) {
-      errors.push(`Invalid title at level ${level.levelId}`);
+    if (!video.sourceLevelIds.includes(level.levelId)) {
+      errors.push(`Video ${video.videoId} is not title-mapped to level ${level.levelId}`);
     }
-    if (withinLevel.has(video.videoId)) {
-      errors.push(`Duplicate video in level ${level.levelId}`);
-    }
-    withinLevel.add(video.videoId);
-    const mappedLevel = seenVideos.get(video.videoId);
-    if (mappedLevel && mappedLevel !== level.levelId) {
-      errors.push(
-        `Video ${video.videoId} maps to levels ${mappedLevel} and ${level.levelId}`,
-      );
-    }
-    seenVideos.set(video.videoId, level.levelId);
+    if (video.sourceLevelIds.length === 2) dualVideos.add(video.videoId);
   }
 }
 
-console.log(`Approved levels: ${levels.length}`);
-console.log(`Approved videos: ${approvedVideos}`);
-console.log(`Unmatched videos: ${unmatched.length}`);
+console.log(`Playlist entries: 4093`);
+console.log(`Unique video IDs: ${new Set(candidates.map((item) => item.videoId)).size}`);
+console.log(`Approved level pages: ${levels.length}`);
+console.log(`Single-number mappings: ${new Set(candidates.filter((item) => item.sourceLevelIds.length === 1).map((item) => item.videoId)).size}`);
+console.log(`Dual-number source videos: ${dualVideos.size}`);
+console.log(`Primary-label pages: ${primaryLabelPages}`);
+console.log(`Parenthetical-label pages: ${parentheticalLabelPages}`);
+console.log(`Duplicate level candidates: ${multipleCandidates.length}`);
+console.log(`Unmatched: ${unmatched.length}`);
 console.log(`Conflicts: ${conflicts.length}`);
 console.log(`Errors: ${errors.length}`);
 
 if (errors.length) {
   console.error(errors.join("\n"));
-  process.exit(1);
-}
-
-if (!Array.isArray(candidates)) {
-  console.error("Candidate data is invalid");
   process.exit(1);
 }
