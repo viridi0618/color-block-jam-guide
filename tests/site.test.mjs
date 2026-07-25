@@ -2047,8 +2047,42 @@ test("aspect ratio: video-aspect-ratio.json overrides exist", async () => {
 test("aspect ratio: import script uses override with fallback", async () => {
   const script = await readFile(new URL("scripts/import-youtube-sources.ts", root), "utf8");
   assert.match(script, /aspectRatioOverrides\[videoId!\]\s*\?\?\s*source\.defaultAspectRatio/);
-  assert.match(script, /invalid_aspect_ratio_override/);
-  assert.match(script, /VALID_ASPECT_RATIOS/);
+  assert.match(script, /validateAspectRatioOverrides/);
+  assert.match(script, /from "\.\.\/lib\/aspect-ratio\.ts"/);
+});
+
+test("aspect ratio: validateAspectRatioOverrides rejects invalid ratios", async () => {
+  const { validateAspectRatioOverrides } = await import(
+    new URL("lib/aspect-ratio.ts", root).href
+  );
+  const conflicts = validateAspectRatioOverrides({ "VIDEO_ID": "1:1" });
+  assert.ok(conflicts.length > 0, "should have at least one conflict");
+  assert.strictEqual(conflicts[0].type, "invalid_aspect_ratio_override");
+  assert.strictEqual(conflicts[0].severity, "error");
+});
+
+test("aspect ratio: validateAspectRatioOverrides accepts valid ratios", async () => {
+  const { validateAspectRatioOverrides } = await import(
+    new URL("lib/aspect-ratio.ts", root).href
+  );
+  const conflicts = validateAspectRatioOverrides({ "VIDEO_A": "9:16", "VIDEO_B": "16:9" });
+  assert.strictEqual(conflicts.length, 0, "valid ratios should produce no conflicts");
+});
+
+test("aspect ratio: resolveAspectRatio returns override when present", async () => {
+  const { resolveAspectRatio } = await import(
+    new URL("lib/aspect-ratio.ts", root).href
+  );
+  const result = resolveAspectRatio("VIDEO_X", "9:16", { "VIDEO_X": "16:9" });
+  assert.strictEqual(result, "16:9");
+});
+
+test("aspect ratio: resolveAspectRatio falls back to source default", async () => {
+  const { resolveAspectRatio } = await import(
+    new URL("lib/aspect-ratio.ts", root).href
+  );
+  const result = resolveAspectRatio("VIDEO_X", "9:16", {});
+  assert.strictEqual(result, "9:16");
 });
 
 test("aspect ratio: Level 16 primaryVideo is 9:16", async () => {
@@ -2137,10 +2171,10 @@ test("online game heading: /play-online uses h1", async () => {
   assert.match(playOnline, /as="h1"/);
 });
 
-test("online game heading: /play-online has only one H1", async () => {
+test("online game heading: /play-online uses h1 as component prop", async () => {
   const playOnline = await readFile(new URL("app/play-online/page.tsx", root), "utf8");
-  const h1Matches = playOnline.match(/<h1[\s>]/g);
-  assert.strictEqual(h1Matches?.length ?? 0, 1, "play-online page should have exactly one H1");
+  assert.match(playOnline, /as="h1"/, "OnlineGameHeading should receive as=h1");
+  // Real H1 count is verified by Playwright E2E (portrait-video.spec.ts)
 });
 
 test("online game heading: CSS has heading styles", async () => {

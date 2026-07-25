@@ -331,7 +331,7 @@ h2 { margin-bottom: 0; font-size: clamp(1.8rem, 4vw, 2.7rem); }
   .alternative-preview { grid-template-columns: 108px 1fr; font-size: .9rem; }
   .alternative-preview img { width: 108px; height: 72px; }
   .related-level-link { font-size: .84rem; padding: 7px 11px; min-height: 38px; }
-.online-game-frame { border-radius: 20px; }
+  .online-game-frame { border-radius: 20px; }
   .online-game-heading-icon { width: 76px; height: 76px; }
   .online-game-heading-play { width: 32px; height: 32px; top: -6px; right: -6px; }
   .online-game-heading-copy { padding: 0 16px; }

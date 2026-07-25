@@ -5,8 +5,8 @@ import {
   rankCandidates,
 } from "../lib/level-parser.ts";
 import type { Rankable } from "../lib/level-parser.ts";
-
-type AspectRatio = "16:9" | "9:16" | "4:3";
+import { validateAspectRatioOverrides } from "../lib/aspect-ratio.ts";
+import type { AspectRatio } from "../lib/aspect-ratio.ts";
 type MatchType = "primary-label" | "parenthetical-label";
 type Source = {
   sourceId: string;
@@ -117,17 +117,7 @@ let rejectedRangeCount = 0;
 let rangeExpansions = 0;
 
 // Validate aspect ratio override values
-const VALID_ASPECT_RATIOS = new Set<string>(["16:9", "9:16", "4:3"]);
-for (const [videoId, ratio] of Object.entries(aspectRatioOverrides)) {
-  if (!VALID_ASPECT_RATIOS.has(ratio)) {
-    conflicts.push({
-      type: "invalid_aspect_ratio_override",
-      severity: "error",
-      videoId,
-      reason: `Invalid aspect ratio "${ratio}" for video ${videoId}. Must be one of: 16:9, 9:16, 4:3`,
-    });
-  }
-}
+conflicts.push(...validateAspectRatioOverrides(aspectRatioOverrides));
 
 for (const source of enabled) {
   const imported = await readJson<{ entries?: RawEntry[]; videoMetadata?: Record<string, RawEntry> }>(source.importFile);
