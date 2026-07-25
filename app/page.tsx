@@ -5,10 +5,14 @@ import { LevelRanges } from "@/components/LevelRanges";
 import { IntentLinks } from "@/components/IntentLinks";
 import { OnlineGamePlayer } from "@/components/OnlineGamePlayer";
 import { approvedLevelIds, levelRanges, levels } from "@/lib/levels";
+import { siteUrl } from "@/lib/site-url";
 
 export const metadata = {
-  title: "Color Block Jam Level Walkthroughs & Solutions",
-  description: "Find Color Block Jam level walkthrough videos by level number.",
+  title: {
+    absolute: "Color Block Jam Level Walkthroughs & Solutions",
+  },
+  description:
+    "Find Color Block Jam level walkthroughs by number or range, watch matched video solutions, and quickly get back to the puzzle you're stuck on.",
   alternates: { canonical: "/" },
 };
 
@@ -19,6 +23,14 @@ const featured = featuredIndexes.map((index) => levels[Math.min(index, levels.le
 const featuredIds = new Set(featured.map((level) => level.levelId));
 const latestExcludingFeatured = latest.filter((level) => !featuredIds.has(level.levelId));
 const collage = featured.slice(1, 5);
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Color Block Jam Guide",
+  alternateName: "Color Block Jam Level Guide",
+  url: siteUrl,
+};
 
 function WalkthroughCard({ level, latestLabel = false }: { level: (typeof levels)[number]; latestLabel?: boolean }) {
   return (
@@ -34,6 +46,11 @@ function WalkthroughCard({ level, latestLabel = false }: { level: (typeof levels
 
 export default function Home() {
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+      />
     <main>
       <section className="hero shell">
         <div className="hero-copy-column">
@@ -101,5 +118,6 @@ export default function Home() {
         <p>Every indexed page is connected to an explicitly titled public walkthrough. No login, autoplay, or distracting pop-ups.</p>
       </section>
     </main>
+    </>
   );
 }
