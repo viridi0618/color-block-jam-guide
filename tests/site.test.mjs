@@ -430,12 +430,14 @@ test("robots uses siteUrl for sitemap", async () => {
 
 // ─── Range video hint on level page ─────────────────────────────────
 
-test("level page shows range hint for range videos", async () => {
+test("level page shows dynamic range hint with levelId", async () => {
   const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
   assert.match(levelPage, /isRangeVideo/);
-  assert.match(levelPage, /This video covers Levels/);
-  assert.match(levelPage, /rangeStart/);
-  assert.match(levelPage, /rangeEnd/);
+  assert.match(levelPage, /Level \{levelId\} is included in this Levels/);
+  assert.match(levelPage, /Levels \{level\.rangeStart\}/);
+  assert.match(levelPage, /level\.rangeEnd/);
+  assert.match(levelPage, /find the Level \{levelId\} section/);
+  assert.doesNotMatch(levelPage, /This video covers Levels/);
 });
 
 // ─── Rejected ranges file exists ────────────────────────────────────
@@ -667,4 +669,116 @@ test("related levels: same levelId returns identical results (determinism)", asy
   const result1 = getRelatedLevels(340);
   const result2 = getRelatedLevels(340);
   assert.deepStrictEqual(result1, result2, "getRelatedLevels is not deterministic");
+});
+
+// ─── Share Button Uniqueness ────────────────────────────────────────
+
+test("share: level page renders ShareLevel exactly once", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  const matches = levelPage.match(/<ShareLevel/g);
+  assert.ok(matches, "No ShareLevel found");
+  assert.strictEqual(matches.length, 1, `Expected 1 ShareLevel, found ${matches.length}`);
+});
+
+test("share: the single ShareLevel uses compact", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  // The compact ShareLevel should have `compact` prop
+  assert.match(levelPage, /<ShareLevel\s+levelId=\{levelId\}\s+canonicalUrl=\{canonicalUrl\}\s+compact/);
+});
+
+test("share: no non-compact ShareLevel remains", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  // There should be no ShareLevel without compact
+  const compactCount = (levelPage.match(/<ShareLevel\s+levelId=\{levelId\}\s+canonicalUrl=\{canonicalUrl\}\s+compact/g) || []).length;
+  const totalCount = (levelPage.match(/<ShareLevel/g) || []).length;
+  assert.strictEqual(compactCount, totalCount, "All ShareLevel instances should use compact");
+});
+
+// ─── Level 1–10 Data Integrity ──────────────────────────────────────
+
+test("level data: Levels 1-10 all exist", async () => {
+  const levels = JSON.parse(
+    await readFile(new URL("data/levels/all-levels.json", root), "utf8"),
+  );
+  const ids = new Set(levels.map((l) => l.levelId));
+  for (let i = 1; i <= 10; i++) {
+    assert.ok(ids.has(i), `Level ${i} should exist`);
+  }
+});
+
+test("level data: Levels 1-10 have self-canonical", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.match(levelPage, /canonical:\s*`\/level\/\$\{levelId\}`/);
+});
+
+test("level data: single-level page logic not affected by range video", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  // Dual-note still present for dual-number videos
+  assert.match(levelPage, /video creator labels this walkthrough/);
+  // Normal single-level flow intact
+  assert.match(levelPage, /color block jam level \{levelId\} walkthrough/i);
+});
+
+// ─── Video Source Card Removal ──────────────────────────────────────
+
+test("video source: no Video source card on level page", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.doesNotMatch(levelPage, /Video source/);
+  assert.doesNotMatch(levelPage, /This page embeds a public YouTube video/);
+  assert.doesNotMatch(levelPage, /More levels in/);
+  assert.doesNotMatch(levelPage, /All Color Block Jam Level Walkthroughs/);
+  assert.doesNotMatch(levelPage, /source-card/);
+});
+
+test("video source: attribution line with dynamic channelTitle", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.match(levelPage, /Video walkthrough by/);
+  assert.match(levelPage, /video\.channelTitle/);
+  assert.match(levelPage, /video\.videoId/);
+  assert.match(levelPage, /youtube\.com\/watch/);
+  assert.match(levelPage, /on YouTube/);
+});
+
+test("video source: YouTube link uses target blank and noopener", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.match(levelPage, /target="_blank"/);
+  assert.match(levelPage, /rel="noopener noreferrer"/);
+});
+
+test("video source: attribution uses .video-attribution CSS class", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.match(levelPage, /video-attribution/);
+});
+
+// ─── Footer Unified Disclaimer ──────────────────────────────────────
+
+test("footer: unified disclaimer present", async () => {
+  const layout = await readFile(new URL("app/layout.tsx", root), "utf8");
+  assert.match(layout, /unofficial/);
+  assert.match(layout, /not affiliated with Rollic Games/);
+  assert.match(layout, /Videos remain the property of their respective creators/);
+  assert.match(layout, /footer-disclaimer/);
+  assert.doesNotMatch(layout, /footer-legal/);
+});
+
+// ─── Existing Content Still Present ─────────────────────────────────
+
+test("level page: Related Levels, range link, Browse All still present", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.match(levelPage, /getRelatedLevels/);
+  assert.match(levelPage, /More Levels to Explore/);
+  assert.match(levelPage, /Browse All Levels/);
+  assert.match(levelPage, /Levels \{range\.start\}/);
+});
+
+test("level page: Previous / Next still present", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.match(levelPage, /Previous Level/);
+  assert.match(levelPage, /Next Level/);
+});
+
+test("level page: compact share and range hint still present", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.match(levelPage, /<ShareLevel\s+levelId=\{levelId\}\s+canonicalUrl=\{canonicalUrl\}\s+compact/);
+  assert.match(levelPage, /Level \{levelId\} is included in this Levels/);
 });
