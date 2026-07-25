@@ -1540,12 +1540,33 @@ test("analytics: game_load_error event exists", async () => {
   assert.match(player, /errorTrackedForCycle/);
 });
 
+test("analytics: errorTrackedForCycle initial value allows first timeout", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  // Must be -1 (or null), NOT 0, so first timeout fires game_load_error
+  assert.match(player, /useRef\(-1\)/);
+  assert.doesNotMatch(player, /useRef\(0\)/);
+});
+
 test("analytics: game_load_error dedup per reloadKey", async () => {
   const player = await readFile(
     new URL("components/OnlineGamePlayer.tsx", root),
     "utf8",
   );
   assert.match(player, /errorTrackedForCycle\.current === reloadKey/);
+  assert.match(player, /errorTrackedForCycle\.current = reloadKey/);
+});
+
+test("analytics: game_load_error dedup allows fire after Reload", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  // After Reload: reloadKey increments, errorTrackedForCycle is reset by assignment,
+  // so the next timeout cycle can fire again (new reloadKey !== old tracked value)
+  assert.match(player, /setReloadKey\(\(k\) => k \+ 1\)/);
   assert.match(player, /errorTrackedForCycle\.current = reloadKey/);
 });
 

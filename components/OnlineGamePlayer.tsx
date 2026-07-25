@@ -29,7 +29,7 @@ export function OnlineGamePlayer({
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasAutoStarted = useRef(false);
   // Track per-load-cycle error dedup: only fire game_load_error once per reloadKey
-  const errorTrackedForCycle = useRef(0);
+  const errorTrackedForCycle = useRef(-1);
 
   // Auto-start if game was previously started in this tab session (sessionStorage recovery).
   // Only fires once, and only when gameStarted is true while playerState is still idle.
