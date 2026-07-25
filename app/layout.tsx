@@ -80,8 +80,10 @@ export default function RootLayout({
                 <span>Color Block Jam</span>
                 <small>Level Guide</small>
               </Link>
-              <p>
-                An unofficial, fan-made walkthrough index for Color Block Jam.
+              <p className="footer-disclaimer">
+                This is an unofficial fan-made walkthrough index for Color Block Jam and is
+                not affiliated with Rollic Games. Videos remain the property of their
+                respective creators.
               </p>
             </div>
             <div className="footer-links">
@@ -116,10 +118,7 @@ export default function RootLayout({
               </nav>
             </div>
           </div>
-          <div className="shell footer-legal">
-            Videos remain the property of their respective creators.
-          </div>
-        </footer>
+          </footer>
       </body>
     </html>
   );

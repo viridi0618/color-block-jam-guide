@@ -70,6 +70,17 @@ export default async function LevelPage({ params }: { params: Promise<{ levelId:
       </header>
       <ShareLevel levelId={levelId} canonicalUrl={canonicalUrl} compact />
       <VideoEmbed video={video} />
+        <p className="video-attribution">
+          Video walkthrough by{" "}
+          <a
+            href={`https://www.youtube.com/watch?v=${video.videoId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {video.channelTitle}
+          </a>{" "}
+          on YouTube.
+        </p>
       <div className="level-nav" aria-label="Level navigation">
         {adjacent.previous ? (
           <Link className="nav-button previous" href={`/level/${adjacent.previous}`}>
@@ -82,7 +93,6 @@ export default async function LevelPage({ params }: { params: Promise<{ levelId:
           </Link>
         ) : <span className="nav-button disabled">Last available level</span>}
       </div>
-      <ShareLevel levelId={levelId} canonicalUrl={canonicalUrl} />
       {level.alternativeVideos.length ? (
         <section className="content-card">
           <h2>Alternative walkthrough</h2>
@@ -92,8 +102,8 @@ export default async function LevelPage({ params }: { params: Promise<{ levelId:
       ) : null}
       {level.isRangeVideo && level.rangeStart != null && level.rangeEnd != null ? (
         <aside className="dual-note">
-          This video covers Levels {level.rangeStart}–{level.rangeEnd}.<br />
-          Level numbering or layouts may vary after game updates.
+          Level {levelId} is included in this Levels {level.rangeStart}–{level.rangeEnd} walkthrough compilation.<br />
+          Use the video player to find the Level {levelId} section.
         </aside>
       ) : dual ? (
         <aside className="dual-note">
@@ -101,13 +111,6 @@ export default async function LevelPage({ params }: { params: Promise<{ levelId:
           Level numbering or layouts may vary after game updates.
         </aside>
       ) : null}
-      <section className="content-card source-card">
-        <h2>Video source</h2>
-        <p>This page embeds a public YouTube video from <strong>{video.channelTitle}</strong>. The player preserves creator attribution and original controls.</p>
-        <p>This unofficial fan-made guide is not affiliated with Rollic Games or YouTube. Videos remain the property of their respective creators.</p>
-        <p><Link className="text-link" href={range.slug}>More levels in {range.start}–{range.end} →</Link></p>
-        <p><Link className="text-link" href="/levels">All Color Block Jam Level Walkthroughs</Link></p>
-      </section>
       {relatedLevels.length > 0 ? (
         <section className="content-card related-levels-card">
           <h2>More Levels to Explore</h2>
