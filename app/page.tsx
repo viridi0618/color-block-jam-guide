@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LevelSearch } from "@/components/LevelSearch";
 import { LevelRanges } from "@/components/LevelRanges";
 import { IntentLinks } from "@/components/IntentLinks";
-import { TrackedPlayOnlineLink } from "@/components/TrackedPlayOnlineLink";
+import { OnlineGamePlayer } from "@/components/OnlineGamePlayer";
 import { approvedLevelIds, levelRanges, levels } from "@/lib/levels";
 
 export const metadata = {
@@ -57,21 +57,14 @@ export default function Home() {
       </section>
 
       <section className="home-section shell">
-        <div className="play-online-home-card">
-          <div className="play-online-home-card-content">
+        <div className="section-heading centered">
+          <div>
             <p className="kicker">Take a Puzzle Break</p>
             <h2>Play Color Block Jam Online</h2>
-            <p>Start a quick browser puzzle game.</p>
-            <TrackedPlayOnlineLink />
-          </div>
-          <div className="play-online-home-card-visual" aria-hidden="true">
-            <span className="brand-mark">
-              <i />
-              <i />
-              <i />
-            </span>
+            <p>Start a quick browser puzzle game without leaving this page.</p>
           </div>
         </div>
+        <OnlineGamePlayer sourcePage="home" compact />
       </section>
 
       <section className="home-section shell">

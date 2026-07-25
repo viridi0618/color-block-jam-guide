@@ -61,8 +61,8 @@ export default function RootLayout({
             </Link>
             <nav aria-label="Main navigation">
               <Link href="/">Home</Link>
-              <Link href="/levels">All levels</Link>
-              <Link href="/about">About</Link>
+              <Link href="/levels">All Levels</Link>
+              <Link href="/play-online">Play Online</Link>
               <Link href="/levels" className="header-find">Find a Level</Link>
             </nav>
           </div>
@@ -91,6 +91,7 @@ export default function RootLayout({
               <Link href="/download">Download</Link>
               <Link href="/play-on-pc">Play on PC</Link>
               <Link href="/play-online">Play Online</Link>
+              <Link href="/about">About</Link>
               <Link href="/about-color-block-jam">About the Game</Link>
               <Link href="/faq">FAQ</Link>
               <Link href="/privacy">Privacy</Link>
