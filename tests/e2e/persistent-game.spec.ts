@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 /**
  * E2E tests for persistent game session across level pages.
@@ -23,11 +23,11 @@ const GAME_IFRAME = 'iframe[title="Color Block Jam Online"]';
 //    script overrides window.gtag (e.g. game_start, play_online_from_home).
 // The external GTM script is blocked to prevent the real GA4 library from
 // replacing the dataLayer implementation.
-async function blockGa4Script(page: { route: (url: string, handler: (route: unknown) => Promise<void>) => Promise<void> }) {
-  await page.route("**/googletagmanager.com/**", (route: { abort: () => Promise<void> }) => route.abort());
+async function blockGa4Script(page: Page) {
+  await page.route("**/googletagmanager.com/**", (route) => route.abort());
 }
 
-async function setupAnalyticsMock(page: { addInitScript: (opts: { content: string }) => Promise<void> }) {
+async function setupAnalyticsMock(page: Page) {
   await page.addInitScript({ content: `window.__trackedEvents = [];
 window.gtag = function() {
   window.__trackedEvents.push(Array.from(arguments));
@@ -47,7 +47,7 @@ window.dataLayer.push = function() {
   await blockGa4Script(page);
 }
 
-async function getTrackedEvents(page: { evaluate: (fn: () => unknown) => Promise<unknown> }): Promise<unknown[]> {
+async function getTrackedEvents(page: Page): Promise<unknown[]> {
   const result = await page.evaluate(() => {
     const w = window as unknown as { __trackedEvents?: unknown[] };
     return w.__trackedEvents ?? [];

@@ -4,7 +4,7 @@ export const VALID_ASPECT_RATIOS = new Set<string>(["16:9", "9:16", "4:3"]);
 
 export interface AspectRatioConflict {
   type: string;
-  severity: string;
+  severity: "error" | "warning";
   videoId: string;
   reason: string;
 }
