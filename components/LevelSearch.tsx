@@ -6,9 +6,12 @@ import { FormEvent, useMemo, useState } from "react";
 export function LevelSearch({
   approvedLevels,
   buttonLabel = "Find My Level",
+  onValidSubmit,
 }: {
   approvedLevels: number[];
   buttonLabel?: string;
+  /** Called when a valid levelId is submitted, before navigation. */
+  onValidSubmit?: (levelId: number) => void;
 }) {
   const router = useRouter();
   const approved = useMemo(() => new Set(approvedLevels), [approvedLevels]);
@@ -27,6 +30,11 @@ export function LevelSearch({
       return;
     }
     setMessage("");
+    try {
+      onValidSubmit?.(levelId);
+    } catch {
+      // analytics failure should not block navigation
+    }
     router.push(`/level/${levelId}`);
   }
 

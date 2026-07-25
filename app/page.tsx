@@ -3,6 +3,7 @@ import Link from "next/link";
 import { LevelSearch } from "@/components/LevelSearch";
 import { LevelRanges } from "@/components/LevelRanges";
 import { IntentLinks } from "@/components/IntentLinks";
+import { TrackedPlayOnlineLink } from "@/components/TrackedPlayOnlineLink";
 import { approvedLevelIds, levelRanges, levels } from "@/lib/levels";
 
 export const metadata = {
@@ -61,7 +62,7 @@ export default function Home() {
             <p className="kicker">Take a Puzzle Break</p>
             <h2>Play Color Block Jam Online</h2>
             <p>Start a quick browser puzzle game.</p>
-            <Link href="/play-online" className="primary-button">Play Online</Link>
+            <TrackedPlayOnlineLink />
           </div>
           <div className="play-online-home-card-visual" aria-hidden="true">
             <span className="brand-mark">

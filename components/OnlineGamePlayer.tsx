@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { track } from "@/lib/analytics";
-import { onlineGameConfig } from "@/lib/online-game";
+import { onlineGameAvailable, onlineGameConfig } from "@/lib/online-game";
 
 interface OnlineGamePlayerProps {
   sourcePage: "play_online" | "level";
@@ -28,6 +28,8 @@ export function OnlineGamePlayer({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasAutoStarted = useRef(false);
+  // Track per-load-cycle error dedup: only fire game_load_error once per reloadKey
+  const errorTrackedForCycle = useRef(0);
 
   // Auto-start if game was previously started in this tab session (sessionStorage recovery).
   // Only fires once, and only when gameStarted is true while playerState is still idle.
@@ -45,6 +47,13 @@ export function OnlineGamePlayer({
       source_page: sourcePage,
       ...(sourceLevel != null ? { source_level: sourceLevel } : {}),
     });
+    // Also fire play_online_from_level once on first click, only on level pages
+    if (sourcePage === "level") {
+      track("play_online_from_level", {
+        source_page: "level",
+        ...(sourceLevel != null ? { source_level: sourceLevel } : {}),
+      });
+    }
     onGameStart?.();
   }, [sourcePage, sourceLevel, onGameStart]);
 
@@ -101,12 +110,27 @@ export function OnlineGamePlayer({
     };
   }, [playerState, reloadKey]);
 
-  if (!onlineGameConfig.enabled) return null;
+  // Fire game_load_error exactly once per load cycle when timeout is reached
+  useEffect(() => {
+    if (playerState !== "timeout") return;
+    if (errorTrackedForCycle.current === reloadKey) return; // already fired for this cycle
+    errorTrackedForCycle.current = reloadKey;
+    track("game_load_error", {
+      game_provider: onlineGameConfig.provider,
+      source_page: sourcePage,
+      ...(sourceLevel != null ? { source_level: sourceLevel } : {}),
+      error_type: "timeout",
+    });
+  }, [playerState, reloadKey, sourcePage, sourceLevel]);
+
+  if (!onlineGameAvailable) return null;
 
   const aspectRatio = onlineGameConfig.aspectRatio;
   const containerClass = compact
     ? "online-game-shell online-game-shell--compact"
     : "online-game-shell";
+
+  const showOpenExternal = onlineGameConfig.openUrl.length > 0;
 
   return (
     <div className={containerClass}>
@@ -180,15 +204,17 @@ export function OnlineGamePlayer({
             >
               Fullscreen
             </button>
-            <a
-              className="online-game-ctrl-btn"
-              href={onlineGameConfig.openUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={handleOpenExternal}
-            >
-              Open Game in New Tab
-            </a>
+            {showOpenExternal && (
+              <a
+                className="online-game-ctrl-btn"
+                href={onlineGameConfig.openUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={handleOpenExternal}
+              >
+                Open Game in New Tab
+              </a>
+            )}
           </div>
 
           {playerState === "timeout" && (

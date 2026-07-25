@@ -827,7 +827,7 @@ test("online game: all game URLs come from config", async () => {
   assert.match(player, /onlineGameConfig\.embedUrl/);
   assert.match(player, /onlineGameConfig\.openUrl/);
   assert.match(player, /onlineGameConfig\.coverUrl/);
-  assert.match(player, /onlineGameConfig\.enabled/);
+  assert.match(player, /onlineGameAvailable/);
 });
 
 // ─── OnlineGamePlayer Component ─────────────────────────────────────
@@ -912,7 +912,7 @@ test("online game player: has loading timeout fallback", async () => {
 
 test("online game player: returns null when disabled", async () => {
   const player = await readFile(new URL("components/OnlineGamePlayer.tsx", root), "utf8");
-  assert.match(player, /if \(!onlineGameConfig\.enabled\) return null/);
+  assert.match(player, /if \(!onlineGameAvailable\) return null/);
 });
 
 // ─── Play Online Page ────────────────────────────────────────────────
@@ -932,9 +932,14 @@ test("play-online page: has correct metadata", async () => {
 
 test("play-online page: has Level Search", async () => {
   const page = await readFile(new URL("app/play-online/page.tsx", root), "utf8");
-  assert.match(page, /LevelSearch/);
-  assert.match(page, /Find My Walkthrough/);
+  assert.match(page, /PlayOnlineLevelSearch/);
   assert.match(page, /Looking for a walkthrough/);
+  // "Find My Walkthrough" button label lives in PlayOnlineLevelSearch component
+  const search = await readFile(
+    new URL("components/PlayOnlineLevelSearch.tsx", root),
+    "utf8",
+  );
+  assert.match(search, /Find My Walkthrough/);
 });
 
 test("play-online page: has Latest Level Guides", async () => {
@@ -1019,8 +1024,8 @@ test("homepage: has Play Online card", async () => {
   assert.match(home, /Play Color Block Jam Online/);
   assert.match(home, /Take a Puzzle Break/);
   assert.match(home, /play-online-home-card/);
-  assert.match(home, /\/play-online/);
-  assert.match(home, /Play Online/);
+  assert.match(home, /TrackedPlayOnlineLink/);
+  // "Play Online" link text lives in TrackedPlayOnlineLink component
 });
 
 test("homepage: Play Online card does not render iframe", async () => {
@@ -1031,7 +1036,7 @@ test("homepage: Play Online card does not render iframe", async () => {
 
 test("homepage: Play Online card is a link, not a player", async () => {
   const home = await readFile(new URL("app/page.tsx", root), "utf8");
-  assert.match(home, /href="\/play-online"/);
+  assert.match(home, /TrackedPlayOnlineLink/);
   // Level Search is still the primary feature
   assert.match(home, /LevelSearch/);
   // The Play Online card appears after Featured Walkthroughs
@@ -1365,7 +1370,7 @@ test("persistent game: disabled when config is falsy", async () => {
     new URL("components/PersistentOnlineGame.tsx", root),
     "utf8",
   );
-  assert.match(persistent, /if \(!onlineGameConfig\.enabled\) return null/);
+  assert.match(persistent, /if \(!onlineGameAvailable\) return null/);
 });
 
 test("persistent game: disabled state does not create empty container", async () => {
@@ -1382,11 +1387,10 @@ test("persistent game: disabled state does not read sessionStorage", async () =>
     new URL("components/PersistentOnlineGame.tsx", root),
     "utf8",
   );
-  // The sessionStorage useEffect is guarded by config check
-  // The useEffect containing sessionStorage.getItem should check enabled first
-  assert.match(persistent, /if \(!onlineGameConfig\.enabled\) return/);
-  // The component returns null when disabled
-  assert.match(persistent, /if \(!onlineGameConfig\.enabled\) return null/);
+  // The sessionStorage lazy initializer is guarded by onlineGameAvailable check
+  assert.match(persistent, /if \(!onlineGameAvailable\) return false/);
+  // The component returns null when unavailable
+  assert.match(persistent, /if \(!onlineGameAvailable\) return null/);
 });
 
 // ─── Persistent Online Game: CSS ────────────────────────────────────
@@ -1411,4 +1415,245 @@ test("test-game.html exists for browser testing", async () => {
   assert.match(testGame, /Test Game/);
   assert.match(testGame, /counter/);
   assert.match(testGame, /increment/);
+});
+
+test("test-game.html has noindex meta tag", async () => {
+  const testGame = await readFile(
+    new URL("public/test-game.html", root),
+    "utf8",
+  );
+  assert.match(testGame, /<meta name="robots" content="noindex, nofollow">/);
+  assert.match(testGame, /Test fixture used by Playwright E2E only/);
+});
+
+// ─── Online Game Config Availability ────────────────────────────────
+
+test("online game config: trim() is applied to all URLs", async () => {
+  const config = await readFile(new URL("lib/online-game.ts", root), "utf8");
+  assert.match(config, /embedUrl:.*\.trim\(\)/);
+  assert.match(config, /openUrl:.*\.trim\(\)/);
+  assert.match(config, /coverUrl:.*\.trim\(\)/);
+});
+
+test("online game config: onlineGameAvailable is exported", async () => {
+  const config = await readFile(new URL("lib/online-game.ts", root), "utf8");
+  assert.match(config, /onlineGameAvailable/);
+  assert.match(config, /onlineGameConfig\.enabled && onlineGameConfig\.embedUrl\.length > 0/);
+});
+
+test("online game config: enabled=false means unavailable", async () => {
+  // The logic: enabled && embedUrl.length > 0
+  // If enabled is false, onlineGameAvailable is false regardless of embedUrl
+  const config = await readFile(new URL("lib/online-game.ts", root), "utf8");
+  assert.match(config, /onlineGameConfig\.enabled/);
+  assert.match(config, /onlineGameConfig\.embedUrl\.length > 0/);
+});
+
+test("online game config: enabled=true + embedUrl=\"\" means unavailable", async () => {
+  // When embedUrl is empty string (after trim), length === 0, so available is false
+  const config = await readFile(new URL("lib/online-game.ts", root), "utf8");
+  assert.match(config, /embedUrl\.length > 0/);
+});
+
+test("persistent game: uses onlineGameAvailable not onlineGameConfig.enabled", async () => {
+  const persistent = await readFile(
+    new URL("components/PersistentOnlineGame.tsx", root),
+    "utf8",
+  );
+  assert.match(persistent, /onlineGameAvailable/);
+  assert.match(persistent, /if \(!onlineGameAvailable\) return null/);
+});
+
+test("online game player: uses onlineGameAvailable not onlineGameConfig.enabled", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  assert.match(player, /onlineGameAvailable/);
+  assert.match(player, /if \(!onlineGameAvailable\) return null/);
+});
+
+test("play-online page: uses onlineGameAvailable", async () => {
+  const page = await readFile(new URL("app/play-online/page.tsx", root), "utf8");
+  assert.match(page, /onlineGameAvailable/);
+  assert.match(page, /if \(!onlineGameAvailable\)/);
+});
+
+// ─── Analytics Events ────────────────────────────────────────────────
+
+test("analytics: play_online_view event exists", async () => {
+  const tracker = await readFile(
+    new URL("components/PlayOnlineViewTracker.tsx", root),
+    "utf8",
+  );
+  assert.match(tracker, /play_online_view/);
+  assert.match(tracker, /source_page.*play_online/);
+  assert.match(tracker, /tracked\.current/);
+  assert.match(tracker, /useRef/);
+});
+
+test("analytics: play_online_from_home event exists", async () => {
+  const link = await readFile(
+    new URL("components/TrackedPlayOnlineLink.tsx", root),
+    "utf8",
+  );
+  assert.match(link, /play_online_from_home/);
+  assert.match(link, /source_page.*home/);
+  assert.match(link, /href="\/play-online"/);
+  assert.match(link, /onClick/);
+});
+
+test("analytics: play_online_from_level event tracked on first click", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  assert.match(player, /play_online_from_level/);
+  assert.match(player, /sourcePage === "level"/);
+  // Should only fire on level pages, not play_online
+});
+
+test("analytics: play_online_from_level NOT triggered on sessionStorage recovery", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  // The auto-start useEffect does NOT call handlePlay, so it won't trigger play_online_from_level
+  assert.match(player, /setPlayerState\("loading"\)/);
+  // The auto-recovery only sets state, it does not call track()
+  const autoStartStart = player.indexOf("gameStarted && !hasAutoStarted.current");
+  // Find the end of the auto-start useEffect (closing of the dependency array)
+  const setStateLine = player.indexOf("setPlayerState", autoStartStart);
+  const useEffectEnd = player.indexOf("}, [gameStarted, playerState]);", setStateLine);
+  const autoStartBlock = player.substring(autoStartStart, useEffectEnd);
+  assert.doesNotMatch(autoStartBlock, /track\(/);
+  assert.doesNotMatch(autoStartBlock, /play_online_from_level/);
+});
+
+test("analytics: game_load_error event exists", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  assert.match(player, /game_load_error/);
+  assert.match(player, /error_type.*timeout/);
+  assert.match(player, /errorTrackedForCycle/);
+});
+
+test("analytics: game_load_error dedup per reloadKey", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  assert.match(player, /errorTrackedForCycle\.current === reloadKey/);
+  assert.match(player, /errorTrackedForCycle\.current = reloadKey/);
+});
+
+test("analytics: walkthrough_search_from_play_page event exists", async () => {
+  const playOnlineSearch = await readFile(
+    new URL("components/PlayOnlineLevelSearch.tsx", root),
+    "utf8",
+  );
+  assert.match(playOnlineSearch, /walkthrough_search_from_play_page/);
+  assert.match(playOnlineSearch, /source_page.*play_online/);
+  assert.match(playOnlineSearch, /target_level/);
+});
+
+test("analytics: LevelSearch supports onValidSubmit prop", async () => {
+  const search = await readFile(
+    new URL("components/LevelSearch.tsx", root),
+    "utf8",
+  );
+  assert.match(search, /onValidSubmit/);
+  assert.match(search, /onValidSubmit\?\.\(levelId\)/);
+  // onValidSubmit wrapped in try/catch
+  assert.match(search, /try\s*\{/);
+});
+
+test("analytics: onValidSubmit failure does not block navigation", async () => {
+  const search = await readFile(
+    new URL("components/LevelSearch.tsx", root),
+    "utf8",
+  );
+  // The try/catch around onValidSubmit ensures navigation still happens
+  const submitFn = search.substring(
+    search.indexOf("function submit"),
+    search.indexOf("router.push", search.indexOf("function submit")),
+  );
+  assert.match(submitFn, /try\s*\{/);
+  assert.match(submitFn, /onValidSubmit/);
+});
+
+test("analytics: gtag unavailable does not crash for all events", async () => {
+  const analytics = await readFile(new URL("lib/analytics.ts", root), "utf8");
+  assert.match(analytics, /typeof window === "undefined"/);
+  assert.match(analytics, /!w\.gtag/);
+  assert.match(analytics, /try/);
+  assert.match(analytics, /catch/);
+});
+
+// ─── Open Game in New Tab Behavior ──────────────────────────────────
+
+test("online game player: hides Open in New Tab when openUrl is empty", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  assert.match(player, /showOpenExternal/);
+  assert.match(player, /onlineGameConfig\.openUrl\.length > 0/);
+  assert.match(player, /showOpenExternal &&/);
+});
+
+test("online game player: does not render empty href for external link", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  // The external link should be conditionally rendered
+  assert.match(player, /\{showOpenExternal &&/);
+  // href should use config openUrl
+  assert.match(player, /onlineGameConfig\.openUrl/);
+});
+
+test("play-online page: default LevelSearch has no onValidSubmit", async () => {
+  const homePage = await readFile(new URL("app/page.tsx", root), "utf8");
+  // Homepage LevelSearch should NOT pass onValidSubmit
+  const searchMatch = homePage.match(/<LevelSearch[\s\S]*?\/>/);
+  if (searchMatch) {
+    assert.doesNotMatch(searchMatch[0], /onValidSubmit/);
+  }
+});
+
+// ─── PlayOnlineViewTracker Component ─────────────────────────────────
+
+test("play online view tracker: is a client component", async () => {
+  const tracker = await readFile(
+    new URL("components/PlayOnlineViewTracker.tsx", root),
+    "utf8",
+  );
+  assert.match(tracker, /"use client"/);
+});
+
+test("play online view tracker: returns null", async () => {
+  const tracker = await readFile(
+    new URL("components/PlayOnlineViewTracker.tsx", root),
+    "utf8",
+  );
+  assert.match(tracker, /return null/);
+});
+
+// ─── Homepage TrackedPlayOnlineLink ─────────────────────────────────
+
+test("homepage: uses TrackedPlayOnlineLink for Play Online card", async () => {
+  const home = await readFile(new URL("app/page.tsx", root), "utf8");
+  assert.match(home, /TrackedPlayOnlineLink/);
+  assert.match(home, /<TrackedPlayOnlineLink \/>/);
+});
+
+test("homepage: TrackedPlayOnlineLink is a client component", async () => {
+  const link = await readFile(
+    new URL("components/TrackedPlayOnlineLink.tsx", root),
+    "utf8",
+  );
+  assert.match(link, /"use client"/);
 });

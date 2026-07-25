@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { LevelSearch } from "@/components/LevelSearch";
+import { PlayOnlineLevelSearch } from "@/components/PlayOnlineLevelSearch";
 import { OnlineGamePlayer } from "@/components/OnlineGamePlayer";
+import { PlayOnlineViewTracker } from "@/components/PlayOnlineViewTracker";
 import { approvedLevelIds, levels } from "@/lib/levels";
-import { onlineGameConfig } from "@/lib/online-game";
+import { onlineGameAvailable } from "@/lib/online-game";
 
 export const metadata = {
   title: "Play Color Block Jam Online",
@@ -38,9 +39,10 @@ function WalkthroughCard({
 }
 
 export default function PlayOnlinePage() {
-  if (!onlineGameConfig.enabled) {
+  if (!onlineGameAvailable) {
     return (
       <main className="shell page-shell intent-page">
+        <PlayOnlineViewTracker />
         <header className="page-heading">
           <p className="soft-badge">Browser game</p>
           <h1>Play Color Block Jam Online</h1>
@@ -53,10 +55,7 @@ export default function PlayOnlinePage() {
         <section className="content-card">
           <h2>Looking for a walkthrough?</h2>
           <p>Search by level number.</p>
-          <LevelSearch
-            approvedLevels={approvedLevelIds}
-            buttonLabel="Find My Walkthrough"
-          />
+          <PlayOnlineLevelSearch approvedLevels={approvedLevelIds} />
         </section>
 
         <section className="content-card">
@@ -80,6 +79,7 @@ export default function PlayOnlinePage() {
 
   return (
     <main className="shell page-shell intent-page">
+      <PlayOnlineViewTracker />
       <header className="page-heading">
         <p className="soft-badge">Browser game</p>
         <h1>Play Color Block Jam Online</h1>
@@ -91,10 +91,7 @@ export default function PlayOnlinePage() {
       <section className="content-card">
         <h2>Looking for a walkthrough?</h2>
         <p>Search by level number.</p>
-        <LevelSearch
-          approvedLevels={approvedLevelIds}
-          buttonLabel="Find My Walkthrough"
-        />
+        <PlayOnlineLevelSearch approvedLevels={approvedLevelIds} />
       </section>
 
       <section className="content-card">

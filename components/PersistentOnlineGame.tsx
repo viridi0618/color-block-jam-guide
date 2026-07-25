@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { OnlineGamePlayer } from "./OnlineGamePlayer";
-import { onlineGameConfig } from "@/lib/online-game";
+import { onlineGameAvailable } from "@/lib/online-game";
 
 export function PersistentOnlineGame() {
   const pathname = usePathname();
@@ -19,7 +19,7 @@ export function PersistentOnlineGame() {
   // Lazy initializer with SSR guard — sessionStorage is only available in the browser.
   const [gameStarted, setGameStarted] = useState(() => {
     if (typeof window === "undefined") return false;
-    if (!onlineGameConfig.enabled) return false;
+    if (!onlineGameAvailable) return false;
     try {
       return sessionStorage.getItem("online_game_started") === "1";
     } catch {
@@ -36,7 +36,7 @@ export function PersistentOnlineGame() {
     setGameStarted(true);
   }, []);
 
-  if (!onlineGameConfig.enabled) return null;
+  if (!onlineGameAvailable) return null;
 
   return (
     <section className="content-card online-game-level-section">
