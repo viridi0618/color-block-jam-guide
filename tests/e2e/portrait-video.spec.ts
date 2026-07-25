@@ -4,7 +4,7 @@ import { test, expect } from "@playwright/test";
  * E2E tests for portrait (9:16) walkthrough video layout.
  *
  * Validates that portrait video cards are:
- * - Correctly sized (height > width, width <= 430px)
+ * - Correctly sized (height > width, desktop width = 480px)
  * - Horizontally centered on desktop
  * - Not overflowing on mobile viewports
  * - Free of removed caption/attribution text
@@ -17,24 +17,36 @@ const VIDEO_FRAME = ".video-frame";
 const LEVEL_PAGE = ".level-page";
 
 test.describe("Portrait Video Layout", () => {
-  test.describe("Desktop: portrait dimensions", () => {
-    test("portrait card is visible on /level/16", async ({ page }) => {
+  test.describe("Desktop 1280x900: portrait dimensions", () => {
+    test.beforeEach(async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 900 });
+    });
+
+    test("portrait card, frame, and iframe are visible on /level/16", async ({ page }) => {
       await page.goto("/level/16");
       await page.waitForSelector("h1");
 
       const card = page.locator(PORTRAIT_CARD);
       await expect(card).toBeVisible();
-    });
-
-    test("portrait video frame and iframe are visible", async ({ page }) => {
-      await page.goto("/level/16");
-      await page.waitForSelector("h1");
 
       const frame = page.locator(`${PORTRAIT_CARD} ${VIDEO_FRAME}`);
       await expect(frame).toBeVisible();
 
       const iframe = page.locator(`${PORTRAIT_CARD} iframe`);
       await expect(iframe).toBeVisible();
+    });
+
+    test("portrait card width is 480px (±2px browser tolerance)", async ({ page }) => {
+      await page.goto("/level/16");
+      await page.waitForSelector("h1");
+
+      const card = page.locator(PORTRAIT_CARD);
+      const box = await card.boundingBox();
+      expect(box).not.toBeNull();
+      if (box) {
+        expect(box.width).toBeGreaterThanOrEqual(478);
+        expect(box.width).toBeLessThanOrEqual(482);
+      }
     });
 
     test("portrait card height > width", async ({ page }) => {
@@ -49,21 +61,55 @@ test.describe("Portrait Video Layout", () => {
       }
     });
 
-    test("portrait card width <= 432px (430px + browser tolerance)", async ({ page }) => {
+    test("video frame height > frame width (9:16 ratio)", async ({ page }) => {
       await page.goto("/level/16");
       await page.waitForSelector("h1");
 
-      const card = page.locator(PORTRAIT_CARD);
-      const box = await card.boundingBox();
+      const frame = page.locator(`${PORTRAIT_CARD} ${VIDEO_FRAME}`);
+      const box = await frame.boundingBox();
       expect(box).not.toBeNull();
       if (box) {
-        expect(box.width).toBeLessThanOrEqual(432);
+        expect(box.height).toBeGreaterThan(box.width);
+      }
+    });
+
+    test("aspect ratio is ~9:16 (1.75 < ratio < 1.81)", async ({ page }) => {
+      await page.goto("/level/16");
+      await page.waitForSelector("h1");
+
+      const frame = page.locator(`${PORTRAIT_CARD} ${VIDEO_FRAME}`);
+      const box = await frame.boundingBox();
+      expect(box).not.toBeNull();
+      if (box) {
+        const ratio = box.height / box.width;
+        expect(ratio).toBeGreaterThan(1.75);
+        expect(ratio).toBeLessThan(1.81);
+      }
+    });
+
+    test("iframe dimensions do not exceed frame dimensions", async ({ page }) => {
+      await page.goto("/level/16");
+      await page.waitForSelector("h1");
+
+      const frameBox = await page.locator(`${PORTRAIT_CARD} ${VIDEO_FRAME}`).boundingBox();
+      const iframeBox = await page.locator(`${PORTRAIT_CARD} iframe`).boundingBox();
+
+      expect(frameBox).not.toBeNull();
+      expect(iframeBox).not.toBeNull();
+
+      if (frameBox && iframeBox) {
+        expect(iframeBox.width).toBeLessThanOrEqual(frameBox.width);
+        expect(iframeBox.height).toBeLessThanOrEqual(frameBox.height);
       }
     });
   });
 
-  test.describe("Desktop: horizontal centering", () => {
-    test("portrait card is centered within level page", async ({ page }) => {
+  test.describe("Desktop 1280x900: horizontal centering", () => {
+    test.beforeEach(async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 900 });
+    });
+
+    test("portrait card is centered within level page (≤4px diff)", async ({ page }) => {
       await page.goto("/level/16");
       await page.waitForSelector("h1");
 
@@ -83,9 +129,72 @@ test.describe("Portrait Video Layout", () => {
     });
   });
 
-  test.describe("Mobile: no overflow", () => {
-    test("portrait card does not overflow on mobile viewport", async ({ page }) => {
+  test.describe("Desktop 1366x768: short viewport", () => {
+    test.beforeEach(async ({ page }) => {
+      await page.setViewportSize({ width: 1366, height: 768 });
+    });
+
+    test("page loads normally on short viewport", async ({ page }) => {
+      await page.goto("/level/16");
+      await page.waitForSelector("h1");
+
+      const card = page.locator(PORTRAIT_CARD);
+      await expect(card).toBeVisible();
+    });
+
+    test("portrait card width is ~480px on short viewport", async ({ page }) => {
+      await page.goto("/level/16");
+      await page.waitForSelector("h1");
+
+      const card = page.locator(PORTRAIT_CARD);
+      const box = await card.boundingBox();
+      expect(box).not.toBeNull();
+      if (box) {
+        expect(box.width).toBeGreaterThanOrEqual(478);
+        expect(box.width).toBeLessThanOrEqual(482);
+      }
+    });
+
+    test("no horizontal scroll on short viewport", async ({ page }) => {
+      await page.goto("/level/16");
+      await page.waitForSelector("h1");
+
+      const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+      const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
+      expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+    });
+
+    test("iframe is not clipped horizontally", async ({ page }) => {
+      await page.goto("/level/16");
+      await page.waitForSelector("h1");
+
+      const iframe = page.locator(`${PORTRAIT_CARD} iframe`);
+      const box = await iframe.boundingBox();
+      expect(box).not.toBeNull();
+      if (box) {
+        // Iframe should be fully visible horizontally
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(1366);
+      }
+    });
+
+    test("video can be scrolled into view (no forced height compression)", async ({ page }) => {
+      await page.goto("/level/16");
+      await page.waitForSelector("h1");
+
+      // The portrait video is tall and may extend beyond the viewport.
+      // The page should allow normal vertical scrolling.
+      const totalHeight = await page.evaluate(() => document.documentElement.scrollHeight);
+      expect(totalHeight).toBeGreaterThan(768);
+    });
+  });
+
+  test.describe("Mobile 390x844: no overflow", () => {
+    test.beforeEach(async ({ page }) => {
       await page.setViewportSize({ width: 390, height: 844 });
+    });
+
+    test("portrait card does not overflow on mobile viewport", async ({ page }) => {
       await page.goto("/level/16");
       await page.waitForSelector("h1");
 
@@ -94,15 +203,12 @@ test.describe("Portrait Video Layout", () => {
       expect(box).not.toBeNull();
 
       if (box) {
-        // Card left edge should not be negative
         expect(box.x).toBeGreaterThanOrEqual(0);
-        // Card right edge should not exceed viewport width
         expect(box.x + box.width).toBeLessThanOrEqual(390);
       }
     });
 
     test("no horizontal scroll on mobile", async ({ page }) => {
-      await page.setViewportSize({ width: 390, height: 844 });
       await page.goto("/level/16");
       await page.waitForSelector("h1");
 
@@ -112,7 +218,6 @@ test.describe("Portrait Video Layout", () => {
     });
 
     test("iframe width does not exceed card width on mobile", async ({ page }) => {
-      await page.setViewportSize({ width: 390, height: 844 });
       await page.goto("/level/16");
       await page.waitForSelector("h1");
 
@@ -124,6 +229,18 @@ test.describe("Portrait Video Layout", () => {
 
       if (cardBox && iframeBox) {
         expect(iframeBox.width).toBeLessThanOrEqual(cardBox.width);
+      }
+    });
+
+    test("video frame height > width on mobile", async ({ page }) => {
+      await page.goto("/level/16");
+      await page.waitForSelector("h1");
+
+      const frame = page.locator(`${PORTRAIT_CARD} ${VIDEO_FRAME}`);
+      const box = await frame.boundingBox();
+      expect(box).not.toBeNull();
+      if (box) {
+        expect(box.height).toBeGreaterThan(box.width);
       }
     });
   });
@@ -168,7 +285,6 @@ test.describe("Portrait Video Layout", () => {
       await page.goto("/level/16");
       await page.waitForSelector("h1");
 
-      // Level navigation (.level-nav) should exist
       const levelNav = page.locator(".level-nav");
       await expect(levelNav).toBeVisible();
     });
@@ -176,8 +292,6 @@ test.describe("Portrait Video Layout", () => {
 
   test.describe("Landscape compatibility", () => {
     test("aspect ratio logic is not unconditional — 9:16 is the source default", async ({ page }) => {
-      // All current videos are 9:16, so portrait class should be present on /level/16
-      // This test verifies the class is applied based on data, not hardcoded
       await page.goto("/level/16");
       await page.waitForSelector("h1");
 
@@ -195,11 +309,9 @@ test.describe("Portrait Video Layout", () => {
       await page.goto("/");
       await page.waitForSelector("h1");
 
-      // Homepage online game heading uses h2
       const playHeading = page.getByRole("heading", { name: /Play Color Block Jam Online/i, level: 2 });
       await expect(playHeading).toBeVisible();
 
-      // "Play in Your Browser" badge should be visible
       const badge = page.getByText("Play in Your Browser");
       await expect(badge).toBeVisible();
     });
@@ -208,7 +320,6 @@ test.describe("Portrait Video Layout", () => {
       await page.goto("/");
       await page.waitForSelector("h1");
 
-      // The gamepad icon SVG should be visible inside the heading
       const icon = page.locator(".online-game-heading-icon");
       await expect(icon).toBeVisible();
     });
@@ -225,7 +336,6 @@ test.describe("Portrait Video Layout", () => {
       await page.goto("/play-online");
       await page.waitForSelector("h1");
 
-      // Use browser to count H1 elements, not source code
       await expect(page.locator("h1")).toHaveCount(1);
     });
 

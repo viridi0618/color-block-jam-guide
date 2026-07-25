@@ -292,7 +292,7 @@ test("mobile publishing requirements are present", async () => {
   assert.match(search, /We don't have a walkthrough for Level/);
   assert.match(css, /min-height:\s*52px/);
   assert.match(css, /env\(safe-area-inset-bottom\)/);
-  assert.match(css, /max-width:\s*430px/);
+  assert.match(css, /min\(100%,\s*480px\)/);
   assert.doesNotMatch(ranges, /openRange|aria-expanded|>\+<|>−</);
   assert.doesNotMatch(layout, /codex-preview|SkeletonPreview/);
   assert.match(share, /navigator\.share/);
