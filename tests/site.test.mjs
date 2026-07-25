@@ -600,7 +600,7 @@ test("level page includes related levels section", async () => {
   assert.match(levelPage, /getRelatedLevels/);
   assert.match(levelPage, /More Color Block Jam Walkthroughs/);
   assert.match(levelPage, /related-levels-nav/);
-  assert.match(levelPage, /Browse All Levels/);
+  assert.match(levelPage, /Browse All Color Block Jam Levels/);
 });
 
 // ─── Related Levels Composition (real constraints) ─────────────────
@@ -741,7 +741,7 @@ test("level page: Related Levels, range link, Browse All still present", async (
   const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
   assert.match(levelPage, /getRelatedLevels/);
   assert.match(levelPage, /More Color Block Jam Walkthroughs/);
-  assert.match(levelPage, /Browse All Levels/);
+  assert.match(levelPage, /Browse All Color Block Jam Levels/);
   assert.match(levelPage, /Levels \{range\.start\}/);
 });
 
@@ -1213,7 +1213,7 @@ test("persistent game: Related Levels use Next Link", async () => {
   );
   // Related Levels should use <Link>
   assert.match(levelPage, /<Link[\s\S]*related-level-link/);
-  assert.match(levelPage, /<Link[\s\S]*Browse All Levels/);
+  assert.match(levelPage, /<Link[\s\S]*Browse All Color Block Jam Levels/);
 });
 
 // ─── Persistent Online Game: State ──────────────────────────────────
