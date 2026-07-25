@@ -70,17 +70,6 @@ export default async function LevelPage({ params }: { params: Promise<{ levelId:
       </header>
       <ShareLevel levelId={levelId} canonicalUrl={canonicalUrl} compact />
       <VideoEmbed video={video} />
-        <p className="video-attribution">
-          Video walkthrough by{" "}
-          <a
-            href={`https://www.youtube.com/watch?v=${video.videoId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {video.channelTitle}
-          </a>{" "}
-          on YouTube.
-        </p>
       <div className="level-nav" aria-label="Level navigation">
         {adjacent.previous ? (
           <Link className="nav-button previous" href={`/level/${adjacent.previous}`}>

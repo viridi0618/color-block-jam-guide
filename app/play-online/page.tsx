@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { PlayOnlineLevelSearch } from "@/components/PlayOnlineLevelSearch";
 import { OnlineGamePlayer } from "@/components/OnlineGamePlayer";
+import { OnlineGameHeading } from "@/components/OnlineGameHeading";
 import { PlayOnlineViewTracker } from "@/components/PlayOnlineViewTracker";
 import { approvedLevelIds, levels } from "@/lib/levels";
 import { onlineGameAvailable } from "@/lib/online-game";
@@ -80,11 +81,12 @@ export default function PlayOnlinePage() {
   return (
     <main className="shell page-shell intent-page">
       <PlayOnlineViewTracker />
-      <header className="page-heading">
-        <p className="soft-badge">Browser game</p>
-        <h1>Play Color Block Jam Online</h1>
-        <p>Start a quick browser puzzle game right here.</p>
-      </header>
+      <OnlineGameHeading
+        as="h1"
+        badge="Browser Game"
+        title="Play Color Block Jam Online"
+        description="Start a quick browser puzzle game directly on this page through a third-party embed."
+      />
 
       <OnlineGamePlayer sourcePage="play_online" compact />
 

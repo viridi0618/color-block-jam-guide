@@ -4,6 +4,7 @@ import { LevelSearch } from "@/components/LevelSearch";
 import { LevelRanges } from "@/components/LevelRanges";
 import { IntentLinks } from "@/components/IntentLinks";
 import { OnlineGamePlayer } from "@/components/OnlineGamePlayer";
+import { OnlineGameHeading } from "@/components/OnlineGameHeading";
 import { approvedLevelIds, levelRanges, levels } from "@/lib/levels";
 import { siteUrl } from "@/lib/site-url";
 
@@ -78,13 +79,12 @@ export default function Home() {
       </section>
 
       <section className="home-section shell">
-        <div className="section-heading centered">
-          <div>
-            <p className="kicker">Take a Puzzle Break</p>
-            <h2>Play Color Block Jam Online</h2>
-            <p>Start a quick browser puzzle game without leaving this page.</p>
-          </div>
-        </div>
+        <OnlineGameHeading
+          as="h2"
+          badge="Play in Your Browser"
+          title="Play Color Block Jam Online"
+          description="Start a quick browser puzzle game directly on this page, then return to a level walkthrough whenever you need help."
+        />
         <OnlineGamePlayer sourcePage="home" compact />
       </section>
 
