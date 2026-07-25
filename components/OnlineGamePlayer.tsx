@@ -5,7 +5,7 @@ import { track } from "@/lib/analytics";
 import { onlineGameAvailable, onlineGameConfig } from "@/lib/online-game";
 
 interface OnlineGamePlayerProps {
-  sourcePage: "play_online" | "level";
+  sourcePage: "home" | "play_online" | "level";
   sourceLevel?: number;
   compact?: boolean;
   /** If true, the player was already started this session (sessionStorage). Skips idle state. */
@@ -25,7 +25,6 @@ export function OnlineGamePlayer({
 }: OnlineGamePlayerProps) {
   const [playerState, setPlayerState] = useState<PlayerState>("idle");
   const [reloadKey, setReloadKey] = useState(0);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasAutoStarted = useRef(false);
   // Track per-load-cycle error dedup: only fire game_load_error once per reloadKey
@@ -47,7 +46,12 @@ export function OnlineGamePlayer({
       source_page: sourcePage,
       ...(sourceLevel != null ? { source_level: sourceLevel } : {}),
     });
-    // Also fire play_online_from_level once on first click, only on level pages
+    // Fire source-specific event once on first click
+    if (sourcePage === "home") {
+      track("play_online_from_home", {
+        source_page: "home",
+      });
+    }
     if (sourcePage === "level") {
       track("play_online_from_level", {
         source_page: "level",
@@ -65,32 +69,10 @@ export function OnlineGamePlayer({
     setPlayerState("playing");
   }, []);
 
-  const handleReload = useCallback(() => {
+  const handleTryAgain = useCallback(() => {
     setPlayerState("loading");
     setReloadKey((k) => k + 1);
-    track("game_reload", {
-      source_page: sourcePage,
-      ...(sourceLevel != null ? { source_level: sourceLevel } : {}),
-    });
-  }, [sourcePage, sourceLevel]);
-
-  const handleFullscreen = useCallback(() => {
-    const el = iframeRef.current;
-    if (el?.requestFullscreen) {
-      try {
-        el.requestFullscreen();
-      } catch {
-        // fullscreen not supported, silently ignore
-      }
-    }
-    track("game_fullscreen", {
-      source_page: sourcePage,
-      ...(sourceLevel != null ? { source_level: sourceLevel } : {}),
-    });
-  }, [sourcePage, sourceLevel]);
-
-  const handleOpenExternal = useCallback(() => {
-    track("game_open_external", {
+    track("game_retry", {
       source_page: sourcePage,
       ...(sourceLevel != null ? { source_level: sourceLevel } : {}),
     });
@@ -129,8 +111,6 @@ export function OnlineGamePlayer({
   const containerClass = compact
     ? "online-game-shell online-game-shell--compact"
     : "online-game-shell";
-
-  const showOpenExternal = onlineGameConfig.openUrl.length > 0;
 
   return (
     <div className={containerClass}>
@@ -177,7 +157,6 @@ export function OnlineGamePlayer({
             style={{ aspectRatio }}
           >
             <iframe
-              ref={iframeRef}
               key={reloadKey}
               src={onlineGameConfig.embedUrl}
               title="Color Block Jam Online"
@@ -189,39 +168,19 @@ export function OnlineGamePlayer({
             />
           </div>
 
-          <div className="online-game-controls">
-            <button
-              className="online-game-ctrl-btn"
-              type="button"
-              onClick={handleReload}
-            >
-              Reload Game
-            </button>
-            <button
-              className="online-game-ctrl-btn"
-              type="button"
-              onClick={handleFullscreen}
-            >
-              Fullscreen
-            </button>
-            {showOpenExternal && (
-              <a
-                className="online-game-ctrl-btn"
-                href={onlineGameConfig.openUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={handleOpenExternal}
-              >
-                Open Game in New Tab
-              </a>
-            )}
-          </div>
-
           {playerState === "timeout" && (
-            <p className="online-game-timeout-msg">
-              Having trouble loading the game? Reload it or open it in a new
-              tab.
-            </p>
+            <div className="online-game-timeout-actions">
+              <p className="online-game-timeout-msg">
+                The game is taking longer than expected to load.
+              </p>
+              <button
+                className="online-game-retry-btn"
+                type="button"
+                onClick={handleTryAgain}
+              >
+                Try Again
+              </button>
+            </div>
           )}
         </div>
       )}
