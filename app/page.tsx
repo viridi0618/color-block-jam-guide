@@ -3,6 +3,7 @@ import Link from "next/link";
 import { LevelSearch } from "@/components/LevelSearch";
 import { LevelRanges } from "@/components/LevelRanges";
 import { IntentLinks } from "@/components/IntentLinks";
+import { TrackedPlayOnlineLink } from "@/components/TrackedPlayOnlineLink";
 import { approvedLevelIds, levelRanges, levels } from "@/lib/levels";
 
 export const metadata = {
@@ -53,6 +54,24 @@ export default function Home() {
       <section className="home-section shell">
         <div className="section-heading"><div><p className="kicker">Handy starting points</p><h2>Featured Walkthroughs</h2></div></div>
         <div className="video-grid">{featured.map((level) => <WalkthroughCard level={level} key={level.levelId} />)}</div>
+      </section>
+
+      <section className="home-section shell">
+        <div className="play-online-home-card">
+          <div className="play-online-home-card-content">
+            <p className="kicker">Take a Puzzle Break</p>
+            <h2>Play Color Block Jam Online</h2>
+            <p>Start a quick browser puzzle game.</p>
+            <TrackedPlayOnlineLink />
+          </div>
+          <div className="play-online-home-card-visual" aria-hidden="true">
+            <span className="brand-mark">
+              <i />
+              <i />
+              <i />
+            </span>
+          </div>
+        </div>
       </section>
 
       <section className="home-section shell">

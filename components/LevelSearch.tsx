@@ -3,7 +3,16 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 
-export function LevelSearch({ approvedLevels }: { approvedLevels: number[] }) {
+export function LevelSearch({
+  approvedLevels,
+  buttonLabel = "Find My Level",
+  onValidSubmit,
+}: {
+  approvedLevels: number[];
+  buttonLabel?: string;
+  /** Called when a valid levelId is submitted, before navigation. */
+  onValidSubmit?: (levelId: number) => void;
+}) {
   const router = useRouter();
   const approved = useMemo(() => new Set(approvedLevels), [approvedLevels]);
   const [value, setValue] = useState("");
@@ -21,6 +30,11 @@ export function LevelSearch({ approvedLevels }: { approvedLevels: number[] }) {
       return;
     }
     setMessage("");
+    try {
+      onValidSubmit?.(levelId);
+    } catch {
+      // analytics failure should not block navigation
+    }
     router.push(`/level/${levelId}`);
   }
 
@@ -32,7 +46,7 @@ export function LevelSearch({ approvedLevels }: { approvedLevels: number[] }) {
           <span className="sr-only">Level number</span>
           <input value={value} onChange={(event) => { setValue(event.target.value.replace(/\D/g, "")); setMessage(""); }} inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="Enter your level number" aria-describedby="level-search-message" />
         </label>
-        <button className="primary-button" type="submit">Find My Level</button>
+        <button className="primary-button" type="submit">{buttonLabel}</button>
       </div>
       <p id="level-search-message" className="search-message" role="status" aria-live="polite">{message}</p>
     </form>
