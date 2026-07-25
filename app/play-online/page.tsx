@@ -89,34 +89,19 @@ export default function PlayOnlinePage() {
       <OnlineGamePlayer sourcePage="play_online" compact />
 
       <section className="content-card">
-        <h2>How to Play Color Block Jam Online</h2>
+        <h2>How to Play</h2>
         <p>
-          Click Play Now above to start the game in your browser. No download
-          or installation required. The game loads directly on this page.
+          Click Play Now above to start the game in your browser via a
+          third-party embed. The game loads directly on this page.
         </p>
       </section>
 
       <section className="content-card">
-        <h2>Can I Play Without Downloading?</h2>
+        <h2>About This Game</h2>
         <p>
-          Yes. Color Block Jam runs in your browser. You do not need to
-          install anything. Just open this page and click Play Now.
-        </p>
-      </section>
-
-      <section className="content-card">
-        <h2>Is Color Block Jam Online Free?</h2>
-        <p>
-          Yes, the browser version is free to play. There are no hidden fees
-          or subscriptions required to start playing.
-        </p>
-      </section>
-
-      <section className="content-card">
-        <h2>Can I Play on Mobile and Desktop?</h2>
-        <p>
-          Yes. The game works on both mobile and desktop browsers. The layout
-          adapts to your screen size for the best experience.
+          This embedded version of Color Block Jam is provided by a third-party
+          platform. Game availability and features may vary. Check the official
+          Color Block Jam app for the full experience.
         </p>
       </section>
 

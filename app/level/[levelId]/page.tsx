@@ -113,7 +113,7 @@ export default async function LevelPage({ params }: { params: Promise<{ levelId:
       ) : null}
       {relatedLevels.length > 0 ? (
         <section className="content-card related-levels-card">
-          <h2>More Levels to Explore</h2>
+          <h2>More Color Block Jam Walkthroughs</h2>
           <nav aria-label="Related level walkthroughs" className="related-levels-nav">
             {relatedLevels.map((rl) => (
               <Link key={rl.levelId} href={rl.href} className="related-level-link">

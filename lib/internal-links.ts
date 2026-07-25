@@ -98,23 +98,10 @@ export function getFeaturedRanges(): RangeLink[] {
   return picks;
 }
 
-// ─── Related Levels (deterministic) ───────────────────────────────
+// ─── Related Levels (neighbors + same range only) ──────────────────
 
 const MAX_SAME_RANGE = 4;
-const MIN_DISTANT = 2;
-const MAX_DISTANT = 4;
-const MAX_LEVEL_LINKS = 10;
-
-/** Simple deterministic hash from levelId + offset */
-function deterministicIndex(levelId: number, offset: number, max: number): number {
-  // FNV-1a-like hash
-  let h = 2166136261;
-  h = (h ^ levelId) >>> 0;
-  h = (h * 16777619) >>> 0;
-  h = (h ^ offset) >>> 0;
-  h = (h * 16777619) >>> 0;
-  return h % max;
-}
+const MAX_LEVEL_LINKS = 6;
 
 export interface RelatedLevel {
   levelId: number;
@@ -142,7 +129,7 @@ export function getRelatedLevels(levelId: number): RelatedLevel[] {
   const rangeStart = Math.floor((levelId - 1) / 50) * 50 + 1;
   const rangeEnd = rangeStart + 49;
 
-  // 1. Neighbors: up to 2 previous, up to 2 next (always in same range)
+  // 1. Neighbors: up to 2 previous, up to 2 next
   const idx = approvedLevelIds.indexOf(levelId);
   let neighborCount = 0;
   if (idx >= 0) {
@@ -154,7 +141,7 @@ export function getRelatedLevels(levelId: number): RelatedLevel[] {
     }
   }
 
-  // 2. Same-range levels: total same-range (including neighbors) up to MAX_SAME_RANGE
+  // 2. Same-range levels: fill remaining slots up to MAX_SAME_RANGE total
   const sameRangeRemaining = Math.max(0, MAX_SAME_RANGE - neighborCount);
   let sameRangeCount = 0;
   const rangeLevels = approvedLevelIds.filter(
@@ -165,21 +152,5 @@ export function getRelatedLevels(levelId: number): RelatedLevel[] {
     if (add(id)) sameRangeCount++;
   }
 
-  // 3. Distant levels: min 2, max 4, outside current range
-  const remainingSlots = MAX_LEVEL_LINKS - result.length;
-  const distantTarget = Math.min(MAX_DISTANT, Math.max(MIN_DISTANT, remainingSlots));
-
-  const outOfRangeIds = approvedLevelIds.filter(
-    (id) => id < rangeStart || id > rangeEnd,
-  );
-
-  let distantCount = 0;
-  let offset = 0;
-  while (distantCount < distantTarget && offset < outOfRangeIds.length * 3) {
-    const candidate = outOfRangeIds[deterministicIndex(levelId, offset, outOfRangeIds.length)];
-    if (add(candidate)) distantCount++;
-    offset++;
-  }
-
-  return result;
+  return result.slice(0, MAX_LEVEL_LINKS);
 }

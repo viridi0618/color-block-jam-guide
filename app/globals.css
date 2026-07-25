@@ -60,6 +60,8 @@ h1, h2, h3, p { margin-top: 0; }
 .site-header nav a:hover, .site-header nav a:focus-visible { color: var(--rose-deep); }
 .site-header nav .header-find { margin-left: 6px; padding-inline: 18px; border: 1px solid #ead9f1; border-radius: 18px; background: var(--surface-lavender); color: var(--purple-deep); }
 
+#find-level { scroll-margin-top: 100px; }
+
 .hero { display: grid; grid-template-columns: minmax(0, 1.04fr) minmax(380px, .96fr); align-items: center; gap: clamp(34px, 6vw, 76px); padding-block: clamp(54px, 8vw, 100px); }
 .hero-copy-column h1 { max-width: 660px; margin: 18px 0; font-size: clamp(2.6rem, 6vw, 5.1rem); }
 .soft-badge { width: fit-content; margin-bottom: 0; padding: 7px 14px; border-radius: 999px; background: var(--surface-pink); color: var(--rose-deep); font-size: .84rem; font-weight: 700; }

@@ -487,10 +487,8 @@ test.describe("Play Online Page", () => {
     await page.goto("/play-online");
     await page.waitForSelector("h1");
 
-    await expect(page.getByText("How to Play Color Block Jam Online")).toBeVisible();
-    await expect(page.getByText("Can I Play Without Downloading?")).toBeVisible();
-    await expect(page.getByText("Is Color Block Jam Online Free?")).toBeVisible();
-    await expect(page.getByText("Can I Play on Mobile and Desktop?")).toBeVisible();
+    await expect(page.getByText("How to Play")).toBeVisible();
+    await expect(page.getByText("About This Game")).toBeVisible();
   });
 
   test("/play-online has Level Search and Latest Level Guides", async ({ page }) => {

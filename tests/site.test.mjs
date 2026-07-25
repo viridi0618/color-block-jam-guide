@@ -495,15 +495,20 @@ test("footer: featured ranges are all from real levelRanges", async () => {
   }
 });
 
-test("footer layout contains Featured Level Walkthroughs section", async () => {
+test("footer layout contains only approved links", async () => {
   const layout = await readFile(new URL("app/layout.tsx", root), "utf8");
-  assert.match(layout, /Featured Level Walkthroughs/);
-  assert.match(layout, /Browse by Level Range/);
-  assert.match(layout, /getFeaturedLevels/);
-  assert.match(layout, /getFeaturedRanges/);
-  // Original links still exist
-  assert.match(layout, /\/download/);
-  assert.match(layout, /\/faq/);
+  // Footer should NOT contain featured walkthroughs, ranges, download, faq, about
+  assert.doesNotMatch(layout, /Featured Level Walkthroughs/);
+  assert.doesNotMatch(layout, /Browse by Level Range/);
+  assert.doesNotMatch(layout, /getFeaturedLevels/);
+  assert.doesNotMatch(layout, /getFeaturedRanges/);
+  assert.doesNotMatch(layout, /\/download/);
+  assert.doesNotMatch(layout, /\/faq/);
+  assert.doesNotMatch(layout, /\/play-on-pc/);
+  assert.doesNotMatch(layout, /\/about-color-block-jam/);
+  // But should contain the 4 approved links
+  assert.match(layout, /\/levels/);
+  assert.match(layout, /\/play-online/);
   assert.match(layout, /\/privacy/);
 });
 
@@ -542,11 +547,11 @@ test("related levels: all are approved", async () => {
   }
 });
 
-test("related levels: total count is 8-10", async () => {
+test("related levels: total count is 4-6", async () => {
   const { getRelatedLevels } = await import("../lib/internal-links.ts");
   const result = getRelatedLevels(500);
-  assert.ok(result.length >= 8, `Expected at least 8, got ${result.length}`);
-  assert.ok(result.length <= 10, `Expected at most 10, got ${result.length}`);
+  assert.ok(result.length >= 4, `Expected at least 4, got ${result.length}`);
+  assert.ok(result.length <= 6, `Expected at most 6, got ${result.length}`);
 });
 
 test("related levels: includes at least one neighbor", async () => {
@@ -593,7 +598,7 @@ test("related levels: does not use Math.random", async () => {
 test("level page includes related levels section", async () => {
   const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
   assert.match(levelPage, /getRelatedLevels/);
-  assert.match(levelPage, /More Levels to Explore/);
+  assert.match(levelPage, /More Color Block Jam Walkthroughs/);
   assert.match(levelPage, /related-levels-nav/);
   assert.match(levelPage, /Browse All Levels/);
 });
@@ -618,53 +623,16 @@ test("related levels: Level 340 same-range levels <= 4", async () => {
   );
 });
 
-test("related levels: Level 340 has at least 2 distant levels", async () => {
-  const { getRelatedLevels } = await import("../lib/internal-links.ts");
-  const result = getRelatedLevels(340);
-  const { rangeStart, rangeEnd } = levelRange(340);
-  const distant = result.filter((r) => r.levelId < rangeStart || r.levelId > rangeEnd);
-  assert.ok(
-    distant.length >= 2,
-    `Expected at least 2 distant, got ${distant.length}: ${distant.map((r) => r.levelId).join(",")}`,
-  );
-});
-
-test("related levels: Level 1 has distant levels (boundary)", async () => {
-  const { getRelatedLevels } = await import("../lib/internal-links.ts");
-  const result = getRelatedLevels(1);
-  const { rangeStart, rangeEnd } = levelRange(1);
-  const distant = result.filter((r) => r.levelId < rangeStart || r.levelId > rangeEnd);
-  assert.ok(
-    distant.length >= 2,
-    `Expected at least 2 distant for Level 1, got ${distant.length}`,
-  );
-});
-
-test("related levels: last approved level has distant levels (boundary)", async () => {
-  const { getRelatedLevels } = await import("../lib/internal-links.ts");
-  const levels = JSON.parse(
-    await readFile(new URL("data/levels/all-levels.json", root), "utf8"),
-  );
-  const lastId = levels[levels.length - 1].levelId;
-  const result = getRelatedLevels(lastId);
-  const { rangeStart, rangeEnd } = levelRange(lastId);
-  const distant = result.filter((r) => r.levelId < rangeStart || r.levelId > rangeEnd);
-  assert.ok(
-    distant.length >= 2,
-    `Expected at least 2 distant for last level ${lastId}, got ${distant.length}`,
-  );
-});
-
-test("related levels: page total links (levels + range + Browse All) <= 12", async () => {
+test("related levels: page total links (levels + range + Browse All) <= 8", async () => {
   const { getRelatedLevels } = await import("../lib/internal-links.ts");
   const result = getRelatedLevels(340);
   const totalLinks = result.length + 2; // + range page + All Levels
   assert.ok(
-    totalLinks <= 12,
-    `Expected total links <= 12, got ${totalLinks} (${result.length} levels + 2 page links)`,
+    totalLinks <= 8,
+    `Expected total links <= 8, got ${totalLinks} (${result.length} levels + 2 page links)`,
   );
-  assert.ok(result.length >= 8, `Expected at least 8 level links, got ${result.length}`);
-  assert.ok(result.length <= 10, `Expected at most 10 level links, got ${result.length}`);
+  assert.ok(result.length >= 4, `Expected at least 4 level links, got ${result.length}`);
+  assert.ok(result.length <= 6, `Expected at most 6 level links, got ${result.length}`);
 });
 
 test("related levels: same levelId returns identical results (determinism)", async () => {
@@ -772,7 +740,7 @@ test("footer: unified disclaimer present", async () => {
 test("level page: Related Levels, range link, Browse All still present", async () => {
   const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
   assert.match(levelPage, /getRelatedLevels/);
-  assert.match(levelPage, /More Levels to Explore/);
+  assert.match(levelPage, /More Color Block Jam Walkthroughs/);
   assert.match(levelPage, /Browse All Levels/);
   assert.match(levelPage, /Levels \{range\.start\}/);
 });
@@ -913,10 +881,8 @@ test("play-online page: uses OnlineGamePlayer with sourcePage play_online and co
 
 test("play-online page: has rich content sections", async () => {
   const page = await readFile(new URL("app/play-online/page.tsx", root), "utf8");
-  assert.match(page, /How to Play Color Block Jam Online/);
-  assert.match(page, /Can I Play Without Downloading/);
-  assert.match(page, /Is Color Block Jam Online Free/);
-  assert.match(page, /Can I Play on Mobile and Desktop/);
+  assert.match(page, /How to Play/);
+  assert.match(page, /About This Game/);
 });
 
 test("play-online page: has correct metadata", async () => {
@@ -1686,13 +1652,13 @@ test("navigation: header does not include About link", async () => {
   assert.doesNotMatch(headerNav, />About</);
 });
 
-test("navigation: About link still exists in footer", async () => {
+test("navigation: About link removed from footer", async () => {
   const layout = await readFile(new URL("app/layout.tsx", root), "utf8");
   const footerStart = layout.indexOf("<footer");
   const footerEnd = layout.indexOf("</footer>", footerStart);
   const footer = layout.substring(footerStart, footerEnd);
-  assert.match(footer, /\/about/);
-  assert.match(footer, /About/);
+  assert.doesNotMatch(footer, /\/about/);
+  assert.doesNotMatch(footer, />About</);
 });
 
 test("navigation: Find a Level keeps emphasis style", async () => {

@@ -16,6 +16,8 @@ const latest = levels.slice(-6).reverse();
 const featuredIndexes = [0, 99, 399, 799, 1399, levels.length - 1];
 const featured = featuredIndexes.map((index) => levels[Math.min(index, levels.length - 1)])
   .filter((level, index, items) => items.findIndex((item) => item.levelId === level.levelId) === index);
+const featuredIds = new Set(featured.map((level) => level.levelId));
+const latestExcludingFeatured = latest.filter((level) => !featuredIds.has(level.levelId));
 const collage = featured.slice(1, 5);
 
 function WalkthroughCard({ level, latestLabel = false }: { level: (typeof levels)[number]; latestLabel?: boolean }) {
@@ -38,7 +40,9 @@ export default function Home() {
           <p className="soft-badge">Your cozy puzzle helper</p>
           <h1>Color Block Jam Level Walkthroughs</h1>
           <p className="hero-copy">Stuck on a level? Enter your level number and watch the solution.</p>
-          <LevelSearch approvedLevels={approvedLevelIds} />
+          <div id="find-level">
+            <LevelSearch approvedLevels={approvedLevelIds} />
+          </div>
           <p className="hero-note">{approvedLevelIds.length.toLocaleString()} level pages ready to explore</p>
         </div>
         <div className="hero-collage" aria-label="Walkthrough previews">
@@ -75,7 +79,7 @@ export default function Home() {
 
       <section className="home-section shell">
         <div className="section-heading"><div><p className="kicker">Recently added to this site</p><h2>Latest Walkthroughs</h2></div></div>
-        <div className="video-grid">{latest.map((level) => <WalkthroughCard level={level} latestLabel key={level.levelId} />)}</div>
+        <div className="video-grid">{latestExcludingFeatured.map((level) => <WalkthroughCard level={level} latestLabel key={level.levelId} />)}</div>
       </section>
 
       <section className="home-section shell">
