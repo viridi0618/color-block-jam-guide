@@ -141,14 +141,20 @@ export function OnlineGamePlayer({
                 <span>Color Block Jam</span>
               </div>
             )}
+
+            <div className="online-game-start-overlay">
+              <button
+                className="primary-button online-game-play-btn"
+                type="button"
+                onClick={handlePlay}
+              >
+                <span className="online-game-play-icon" aria-hidden="true">
+                  ▶
+                </span>
+                <span>Play Now</span>
+              </button>
+            </div>
           </div>
-          <button
-            className="primary-button online-game-play-btn"
-            type="button"
-            onClick={handlePlay}
-          >
-            Play Now
-          </button>
         </div>
       ) : (
         <div className="online-game-active">
@@ -166,22 +172,24 @@ export function OnlineGamePlayer({
               onLoad={handleIframeLoad}
               className="online-game-iframe"
             />
-          </div>
 
-          {playerState === "timeout" && (
-            <div className="online-game-timeout-actions">
-              <p className="online-game-timeout-msg">
-                The game is taking longer than expected to load.
-              </p>
-              <button
-                className="online-game-retry-btn"
-                type="button"
-                onClick={handleTryAgain}
-              >
-                Try Again
-              </button>
-            </div>
-          )}
+            {playerState === "timeout" && (
+              <div className="online-game-timeout-overlay">
+                <div className="online-game-timeout-panel">
+                  <p className="online-game-timeout-msg">
+                    The game is taking longer than expected to load.
+                  </p>
+                  <button
+                    className="online-game-retry-btn"
+                    type="button"
+                    onClick={handleTryAgain}
+                  >
+                    Try Again
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

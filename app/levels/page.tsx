@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { LevelRanges } from "@/components/LevelRanges";
 import { LevelSearch } from "@/components/LevelSearch";
 import { approvedLevelIds, levelRanges } from "@/lib/levels";
@@ -21,8 +22,32 @@ export default function LevelsPage() {
     })),
   };
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: siteUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "All Levels",
+        item: `${siteUrl}/levels`,
+      },
+    ],
+  };
+
   return (
     <main className="shell page-shell">
+      <nav className="breadcrumbs" aria-label="Breadcrumb">
+        <Link href="/">Home</Link>
+        <span aria-hidden="true">›</span>
+        <span aria-current="page">All Levels</span>
+      </nav>
       <header className="page-heading">
         <p className="soft-badge">All walkthroughs</p>
         <h1>All Color Block Jam Levels</h1>
@@ -33,6 +58,10 @@ export default function LevelsPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
     </main>
   );

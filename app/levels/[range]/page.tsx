@@ -37,10 +37,35 @@ export default async function LevelRangePage({ params }: { params: Promise<{ ran
     })),
   };
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: siteUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "All Levels",
+        item: `${siteUrl}/levels`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: `Levels ${range.start}–${range.end}`,
+        item: `${siteUrl}${range.slug}`,
+      },
+    ],
+  };
+
   return (
     <main className="shell page-shell">
       <nav className="breadcrumbs" aria-label="Breadcrumb">
-        <Link href="/">Home</Link><span>›</span><Link href="/levels">All Levels</Link><span>›</span><span>Levels {range.start}–{range.end}</span>
+        <Link href="/">Home</Link><span aria-hidden="true">›</span><Link href="/levels">All Levels</Link><span aria-hidden="true">›</span><span aria-current="page">Levels {range.start}–{range.end}</span>
       </nav>
       <header className="page-heading">
         <p className="soft-badge">Level range</p>
@@ -59,6 +84,10 @@ export default async function LevelRangePage({ params }: { params: Promise<{ ran
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
     </main>
   );

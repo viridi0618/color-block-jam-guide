@@ -600,7 +600,7 @@ test("level page includes related levels section", async () => {
   assert.match(levelPage, /getRelatedLevels/);
   assert.match(levelPage, /More Color Block Jam Walkthroughs/);
   assert.match(levelPage, /related-levels-nav/);
-  assert.match(levelPage, /Browse All Levels/);
+  assert.match(levelPage, /Browse All Color Block Jam Levels/);
 });
 
 // ─── Related Levels Composition (real constraints) ─────────────────
@@ -741,7 +741,7 @@ test("level page: Related Levels, range link, Browse All still present", async (
   const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
   assert.match(levelPage, /getRelatedLevels/);
   assert.match(levelPage, /More Color Block Jam Walkthroughs/);
-  assert.match(levelPage, /Browse All Levels/);
+  assert.match(levelPage, /Browse All Color Block Jam Levels/);
   assert.match(levelPage, /Levels \{range\.start\}/);
 });
 
@@ -804,11 +804,12 @@ test("online game player: initial state has no iframe in source", async () => {
   assert.match(player, /playerState === "idle"/);
   // The iframe is only rendered when not idle
   assert.match(player, /<iframe/);
+  // The iframe should NOT be in the idle branch
+  assert.match(player, /online-game-start-overlay/);
   // Verify the iframe is inside the non-idle branch
   const idleIndex = player.indexOf('playerState === "idle"');
   const iframeIndex = player.indexOf("<iframe");
-  // The iframe should NOT be in the idle branch
-  assert.ok(iframeIndex < idleIndex || iframeIndex > idleIndex + 0, "iframe should not be rendered in idle state");
+  assert.ok(iframeIndex > idleIndex, "iframe should not be rendered in idle state");
 });
 
 test("online game player: is a client component", async () => {
@@ -837,9 +838,24 @@ test("online game player: supports compact prop", async () => {
   assert.match(player, /online-game-shell--compact/);
 });
 
-test("online game player: Play Now button exists", async () => {
+test("online game player: Play Now button exists inside .online-game-frame", async () => {
   const player = await readFile(new URL("components/OnlineGamePlayer.tsx", root), "utf8");
   assert.match(player, /Play Now/);
+  // Play Now must be inside .online-game-frame (as a descendant of the start overlay)
+  assert.match(player, /online-game-start-overlay/);
+  // Must call handlePlay
+  assert.match(player, /onClick=\{handlePlay\}/);
+  // Must be a real button
+  assert.match(player, /type="button"/);
+  // No Play Now button outside .online-game-frame (the only button is inside the overlay)
+  assert.doesNotMatch(player, /online-game-cover.*<button[^>]*>Play Now/);
+});
+
+test("online game player: Play Now overlay uses absolute positioning", async () => {
+  const css = await readFile(new URL("app/globals.css", root), "utf8");
+  assert.match(css, /online-game-start-overlay/);
+  assert.match(css, /position:\s*absolute/);
+  assert.match(css, /inset:\s*0/);
 });
 
 test("online game player: Try Again button only in timeout state", async () => {
@@ -858,11 +874,21 @@ test("online game player: iframe has correct attributes", async () => {
   assert.match(player, /referrerPolicy="strict-origin-when-cross-origin"/);
 });
 
-test("online game player: has loading timeout fallback", async () => {
+test("online game player: has loading timeout fallback inside .online-game-frame", async () => {
   const player = await readFile(new URL("components/OnlineGamePlayer.tsx", root), "utf8");
   assert.match(player, /timeout/);
   assert.match(player, /The game is taking longer than expected to load/);
   assert.match(player, /setTimeout/);
+  // Timeout overlay must be inside .online-game-frame
+  assert.match(player, /online-game-timeout-overlay/);
+  assert.match(player, /online-game-timeout-panel/);
+});
+
+test("online game player: timeout overlay uses absolute positioning", async () => {
+  const css = await readFile(new URL("app/globals.css", root), "utf8");
+  assert.match(css, /online-game-timeout-overlay/);
+  assert.match(css, /position:\s*absolute/);
+  assert.match(css, /inset:\s*0/);
 });
 
 test("online game player: returns null when disabled", async () => {
@@ -1187,7 +1213,7 @@ test("persistent game: Related Levels use Next Link", async () => {
   );
   // Related Levels should use <Link>
   assert.match(levelPage, /<Link[\s\S]*related-level-link/);
-  assert.match(levelPage, /<Link[\s\S]*Browse All Levels/);
+  assert.match(levelPage, /<Link[\s\S]*Browse All Color Block Jam Levels/);
 });
 
 // ─── Persistent Online Game: State ──────────────────────────────────
@@ -1198,8 +1224,9 @@ test("persistent game: initial state has no iframe in idle", async () => {
     "utf8",
   );
   assert.match(player, /playerState === "idle"/);
-  // The idle branch should show cover, not iframe
+  // The idle branch should show cover and start overlay, not iframe
   assert.match(player, /online-game-cover/);
+  assert.match(player, /online-game-start-overlay/);
   assert.match(player, /Play Now/);
 });
 
@@ -1784,4 +1811,220 @@ test("game player: iframe src does not contain levelId", async () => {
   assert.doesNotMatch(player, /src=.sourceLevel/);
   assert.doesNotMatch(player, /src=.levelId/);
   assert.doesNotMatch(player, /src=.pathname/);
+});
+
+// ─── Play Now Inside Game Frame ─────────────────────────────────────
+
+test("play now: inside .online-game-frame, not outside", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  // Play Now button is inside online-game-start-overlay, which is inside online-game-frame
+  assert.match(player, /online-game-start-overlay/);
+  // No Play Now button directly in .online-game-cover (outside the frame)
+  const coverMatch = player.match(/online-game-cover[\s\S]*?<\/div>/);
+  assert.ok(coverMatch, "online-game-cover should exist");
+  // The cover contains the frame, which contains the overlay
+  assert.match(player, /online-game-frame[\s\S]*?online-game-start-overlay/);
+});
+
+test("play now: no second Play Now button outside the frame", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  // Count Play Now occurrences in JSX (not in JSDoc comments)
+  // Match only <span>Play Now</span> pattern
+  const playNowMatches = player.match(/<span>Play Now<\/span>/g);
+  assert.ok(playNowMatches, "Play Now should exist");
+  assert.strictEqual(playNowMatches.length, 1, "Only one Play Now button should exist");
+});
+
+test("play now: start overlay CSS has absolute and inset", async () => {
+  const css = await readFile(new URL("app/globals.css", root), "utf8");
+  assert.match(css, /\.online-game-start-overlay\s*\{/);
+  assert.match(css, /position:\s*absolute/);
+  assert.match(css, /inset:\s*0/);
+  assert.match(css, /z-index:\s*2/);
+});
+
+test("play now: timeout overlay CSS has absolute and inset", async () => {
+  const css = await readFile(new URL("app/globals.css", root), "utf8");
+  assert.match(css, /\.online-game-timeout-overlay\s*\{/);
+  assert.match(css, /position:\s*absolute/);
+  assert.match(css, /inset:\s*0/);
+  assert.match(css, /z-index:\s*3/);
+});
+
+test("play now: old .online-game-timeout-actions class removed from CSS", async () => {
+  const css = await readFile(new URL("app/globals.css", root), "utf8");
+  assert.doesNotMatch(css, /\.online-game-timeout-actions\s*\{/);
+});
+
+test("play now: Try Again calls handleTryAgain", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  assert.match(player, /handleTryAgain/);
+  assert.match(player, /onClick=\{handleTryAgain\}/);
+});
+
+test("play now: no Reload Game, Fullscreen, or Open Game in New Tab", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  assert.doesNotMatch(player, /Reload Game/);
+  assert.doesNotMatch(player, /Fullscreen/);
+  assert.doesNotMatch(player, /Open Game in New Tab/);
+  assert.doesNotMatch(player, /handleFullscreen/);
+  assert.doesNotMatch(player, /handleOpenExternal/);
+});
+
+// ─── Breadcrumb & Internal Links ────────────────────────────────────
+
+test("breadcrumbs: /levels page has visible breadcrumb", async () => {
+  const levelsPage = await readFile(new URL("app/levels/page.tsx", root), "utf8");
+  assert.match(levelsPage, /className="breadcrumbs"/);
+  assert.match(levelsPage, /aria-label="Breadcrumb"/);
+  assert.match(levelsPage, /Home/);
+  assert.match(levelsPage, /All Levels/);
+});
+
+test("breadcrumbs: /levels Home links to /", async () => {
+  const levelsPage = await readFile(new URL("app/levels/page.tsx", root), "utf8");
+  assert.match(levelsPage, /href="\/"/);
+});
+
+test("breadcrumbs: /levels All Levels is current page span", async () => {
+  const levelsPage = await readFile(new URL("app/levels/page.tsx", root), "utf8");
+  assert.match(levelsPage, /aria-current="page"/);
+  // No link to /levels in breadcrumb (current page)
+  const breadcrumbMatch = levelsPage.match(/<nav[^>]*breadcrumbs[^>]*>([\s\S]*?)<\/nav>/);
+  if (breadcrumbMatch) {
+    assert.doesNotMatch(breadcrumbMatch[1], /href="\/levels"/);
+  }
+});
+
+test("breadcrumbs: /levels has BreadcrumbList with 2 elements", async () => {
+  const levelsPage = await readFile(new URL("app/levels/page.tsx", root), "utf8");
+  assert.match(levelsPage, /BreadcrumbList/);
+  assert.match(levelsPage, /position: 1/);
+  assert.match(levelsPage, /position: 2/);
+});
+
+test("breadcrumbs: /levels BreadcrumbList URLs are absolute", async () => {
+  const levelsPage = await readFile(new URL("app/levels/page.tsx", root), "utf8");
+  assert.match(levelsPage, /siteUrl/);
+  assert.match(levelsPage, /\$\{siteUrl\}\/levels/);
+});
+
+test("breadcrumbs: /levels still has ItemList", async () => {
+  const levelsPage = await readFile(new URL("app/levels/page.tsx", root), "utf8");
+  assert.match(levelsPage, /ItemList/);
+});
+
+test("breadcrumbs: range page has 3-level visible breadcrumb", async () => {
+  const rangePage = await readFile(new URL("app/levels/[range]/page.tsx", root), "utf8");
+  assert.match(rangePage, /className="breadcrumbs"/);
+  assert.match(rangePage, /Home/);
+  assert.match(rangePage, /All Levels/);
+  assert.match(rangePage, /Levels/);
+});
+
+test("breadcrumbs: range current page has aria-current", async () => {
+  const rangePage = await readFile(new URL("app/levels/[range]/page.tsx", root), "utf8");
+  assert.match(rangePage, /aria-current="page"/);
+});
+
+test("breadcrumbs: range has BreadcrumbList with 3 elements", async () => {
+  const rangePage = await readFile(new URL("app/levels/[range]/page.tsx", root), "utf8");
+  assert.match(rangePage, /BreadcrumbList/);
+  assert.match(rangePage, /position: 1/);
+  assert.match(rangePage, /position: 2/);
+  assert.match(rangePage, /position: 3/);
+});
+
+test("breadcrumbs: range BreadcrumbList has correct URL structure", async () => {
+  const rangePage = await readFile(new URL("app/levels/[range]/page.tsx", root), "utf8");
+  assert.match(rangePage, /siteUrl/);
+  assert.match(rangePage, /range\.slug/);
+});
+
+test("breadcrumbs: range page still has ItemList", async () => {
+  const rangePage = await readFile(new URL("app/levels/[range]/page.tsx", root), "utf8");
+  assert.match(rangePage, /ItemList/);
+});
+
+test("breadcrumbs: range page outputs both ItemList and BreadcrumbList", async () => {
+  const rangePage = await readFile(new URL("app/levels/[range]/page.tsx", root), "utf8");
+  assert.match(rangePage, /ItemList/);
+  assert.match(rangePage, /BreadcrumbList/);
+});
+
+test("breadcrumbs: level page has four-level BreadcrumbList", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.match(levelPage, /BreadcrumbList/);
+  assert.match(levelPage, /position: 1/);
+  assert.match(levelPage, /position: 2/);
+  assert.match(levelPage, /position: 3/);
+  assert.match(levelPage, /position: 4/);
+});
+
+test("breadcrumbs: level page breadcrumb has aria-current on current level", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.match(levelPage, /aria-current="page"/);
+});
+
+test("breadcrumbs: level page still has VideoObject", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.match(levelPage, /VideoObject/);
+});
+
+test("intent links: does not contain Download", async () => {
+  const intentLinks = await readFile(new URL("components/IntentLinks.tsx", root), "utf8");
+  assert.doesNotMatch(intentLinks, /\/download/);
+  assert.doesNotMatch(intentLinks, /Download the Game/);
+});
+
+test("intent links: does not contain Play on PC", async () => {
+  const intentLinks = await readFile(new URL("components/IntentLinks.tsx", root), "utf8");
+  assert.doesNotMatch(intentLinks, /\/play-on-pc/);
+  assert.doesNotMatch(intentLinks, /Play on PC/);
+});
+
+test("intent links: does not contain FAQ", async () => {
+  const intentLinks = await readFile(new URL("components/IntentLinks.tsx", root), "utf8");
+  assert.doesNotMatch(intentLinks, /\/faq/);
+  assert.doesNotMatch(intentLinks, /Game FAQ/);
+});
+
+test("intent links: contains Find a Level", async () => {
+  const intentLinks = await readFile(new URL("components/IntentLinks.tsx", root), "utf8");
+  assert.match(intentLinks, /Find a Level/);
+  assert.match(intentLinks, /#find-level/);
+});
+
+test("intent links: contains Browse All Color Block Jam Levels", async () => {
+  const intentLinks = await readFile(new URL("components/IntentLinks.tsx", root), "utf8");
+  assert.match(intentLinks, /Browse All Color Block Jam Levels/);
+  assert.match(intentLinks, /\/levels/);
+});
+
+test("intent links: contains Play Online", async () => {
+  const intentLinks = await readFile(new URL("components/IntentLinks.tsx", root), "utf8");
+  assert.match(intentLinks, /Play Online/);
+  assert.match(intentLinks, /\/play-online/);
+});
+
+test("anchor text: homepage uses descriptive /levels link", async () => {
+  const homepage = await readFile(new URL("app/page.tsx", root), "utf8");
+  assert.match(homepage, /Browse All Color Block Jam Levels/);
+});
+
+test("anchor text: level page related section uses descriptive /levels link", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.match(levelPage, /Browse All Color Block Jam Levels/);
 });
