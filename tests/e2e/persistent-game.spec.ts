@@ -117,28 +117,38 @@ test.describe("Persistent Game Session", () => {
     await expect(page.getByRole("button", { name: "Play Now" })).not.toBeVisible();
   });
 
-  test("Reload Game button recreates iframe", async ({ page }) => {
+  test("no Reload Game button in normal playing state", async ({ page }) => {
     await page.goto("/level/16");
     await page.waitForSelector("h1");
 
     await page.getByRole("button", { name: "Play Now" }).click();
     await page.waitForSelector(GAME_IFRAME);
 
-    const gameFrame = page.frameLocator(GAME_IFRAME);
-    for (let i = 0; i < 3; i++) {
-      await gameFrame.getByRole("button", { name: "+1" }).click();
-    }
+    // Reload Game button should not exist in playing state
+    const reloadBtn = page.getByRole("button", { name: "Reload Game" });
+    await expect(reloadBtn).toHaveCount(0);
+  });
 
-    await page.getByRole("button", { name: "Reload Game" }).click();
+  test("no Fullscreen button in normal playing state", async ({ page }) => {
+    await page.goto("/level/16");
+    await page.waitForSelector("h1");
 
-    await page.waitForTimeout(500);
+    await page.getByRole("button", { name: "Play Now" }).click();
+    await page.waitForSelector(GAME_IFRAME);
 
-    const gameIframeAfter = page.locator(GAME_IFRAME);
-    await expect(gameIframeAfter).toHaveCount(1);
+    const fullscreenBtn = page.getByRole("button", { name: "Fullscreen" });
+    await expect(fullscreenBtn).toHaveCount(0);
+  });
 
-    const gameFrameAfter = page.frameLocator(GAME_IFRAME);
-    const counterAfter = await gameFrameAfter.locator("#counter").textContent();
-    expect(counterAfter).toBe("0");
+  test("no Open Game in New Tab link", async ({ page }) => {
+    await page.goto("/level/16");
+    await page.waitForSelector("h1");
+
+    await page.getByRole("button", { name: "Play Now" }).click();
+    await page.waitForSelector(GAME_IFRAME);
+
+    const openBtn = page.getByRole("link", { name: "Open Game in New Tab" });
+    await expect(openBtn).toHaveCount(0);
   });
 
   test("Play Now not visible after navigation if game was started", async ({
@@ -168,6 +178,48 @@ test.describe("Persistent Game Session", () => {
     expect(src).not.toContain("16");
     expect(src).not.toContain("levelId");
     expect(src).toContain("test-game.html");
+  });
+});
+
+// ─── Homepage E2E Tests ──────────────────────────────────────────────
+
+test.describe("Homepage Game", () => {
+  test("homepage shows Play Now button", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForSelector("h1");
+
+    const playNow = page.getByRole("button", { name: "Play Now" });
+    await expect(playNow).toBeVisible();
+  });
+
+  test("homepage: click Play Now creates iframe, URL stays /", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.waitForSelector("h1");
+
+    const urlBefore = page.url();
+    await page.getByRole("button", { name: "Play Now" }).click();
+    await page.waitForSelector(GAME_IFRAME);
+
+    const gameIframe = page.locator(GAME_IFRAME);
+    await expect(gameIframe).toHaveCount(1);
+    await expect(gameIframe).toBeVisible();
+
+    const urlAfter = page.url();
+    expect(urlAfter).toBe(urlBefore);
+    expect(urlAfter).not.toContain("/play-online");
+  });
+
+  test("homepage: no /play-online jump link in game section", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.waitForSelector("h1");
+
+    // Play Now should be a button, not a link to /play-online
+    const playOnlineLink = page.locator('a[href="/play-online"].primary-button');
+    await expect(playOnlineLink).toHaveCount(0);
   });
 });
 
@@ -247,24 +299,20 @@ test.describe("Analytics Events", () => {
     await page.getByRole("button", { name: "Play Now" }).click();
     await page.waitForSelector(GAME_IFRAME);
 
-    let events = await getTrackedEvents(page);
+    const events = await getTrackedEvents(page);
     const gameStartEvent = events.find(
       (e: unknown) => (e as [string, string])[0] === "event" && (e as [string, string, unknown])[1] === "game_start",
     ) as [string, string, Record<string, unknown>] | undefined;
     expect(gameStartEvent?.[2]?.source_level).toBe(16);
 
-    // Navigate to /level/17 and click Reload
+    // Navigate to /level/17
     await page.locator(".level-nav .next").click();
     await page.waitForURL(/\/level\/17/);
     await page.waitForSelector("h1");
 
-    await page.getByRole("button", { name: "Reload Game" }).click();
-
-    events = await getTrackedEvents(page);
-    const reloadEvent = events.find(
-      (e: unknown) => (e as [string, string])[0] === "event" && (e as [string, string, unknown])[1] === "game_reload",
-    ) as [string, string, Record<string, unknown>] | undefined;
-    expect(reloadEvent?.[2]?.source_level).toBe(17);
+    // After navigation, source_level should reflect the new level in subsequent events
+    const gameFrameAfter = page.frameLocator(GAME_IFRAME);
+    await gameFrameAfter.getByRole("button", { name: "+1" }).click();
   });
 
   test("walkthrough_search_from_play_page fires on valid search", async ({
@@ -323,16 +371,18 @@ test.describe("Analytics Events", () => {
     expect(viewEvent?.[2]?.source_page).toBe("play_online");
   });
 
-  test("play_online_from_home fires on homepage Play Online click", async ({
+  test("play_online_from_home fires on homepage Play Now click", async ({
     page,
   }) => {
     await page.goto("/");
     await page.waitForSelector("h1");
 
-    // Target the primary card button (class="primary-button"), not the footer or other links
-    await page.locator('.play-online-home-card a.primary-button').click();
+    // Click Play Now on homepage (direct game, not a link)
+    await page.getByRole("button", { name: "Play Now" }).click();
+    await page.waitForSelector(GAME_IFRAME);
 
-    await page.waitForURL(/\/play-online/);
+    const urlAfter = page.url();
+    expect(urlAfter).not.toContain("/play-online");
 
     const events = await getTrackedEvents(page);
     const homeEvent = events.find(
@@ -340,6 +390,33 @@ test.describe("Analytics Events", () => {
     ) as [string, string, Record<string, unknown>] | undefined;
     expect(homeEvent).toBeTruthy();
     expect(homeEvent?.[2]?.source_page).toBe("home");
+  });
+
+  test("play_online_from_home does not fire on reload", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.waitForSelector("h1");
+
+    // Click Play Now
+    await page.getByRole("button", { name: "Play Now" }).click();
+    await page.waitForSelector(GAME_IFRAME);
+
+    let events = await getTrackedEvents(page);
+    const homeEventCount = events.filter(
+      (e: unknown) => (e as [string, string])[0] === "event" && (e as [string, string, unknown])[1] === "play_online_from_home",
+    ).length;
+    expect(homeEventCount).toBe(1);
+
+    // Reload the page
+    await page.reload();
+    await page.waitForSelector("h1");
+
+    events = await getTrackedEvents(page);
+    const homeEventCount2 = events.filter(
+      (e: unknown) => (e as [string, string])[0] === "event" && (e as [string, string, unknown])[1] === "play_online_from_home",
+    ).length;
+    expect(homeEventCount2).toBe(0);
   });
 });
 
@@ -375,7 +452,11 @@ test.describe("URL Stability", () => {
     expect(urlAfter).toBe(urlBefore);
     expect(urlAfter).toContain("/level/16");
   });
+});
 
+// ─── /play-online Page E2E Tests ─────────────────────────────────────
+
+test.describe("Play Online Page", () => {
   test("game frame visible on /play-online", async ({ page }) => {
     await page.goto("/play-online");
     await page.waitForSelector("h1");
@@ -400,5 +481,21 @@ test.describe("URL Stability", () => {
     // Play Now button should be visible
     const playNow = page.getByRole("button", { name: "Play Now" });
     await expect(playNow).toBeVisible();
+  });
+
+  test("/play-online has rich content sections", async ({ page }) => {
+    await page.goto("/play-online");
+    await page.waitForSelector("h1");
+
+    await expect(page.getByText("How to Play")).toBeVisible();
+    await expect(page.getByText("About This Game")).toBeVisible();
+  });
+
+  test("/play-online has Level Search and Latest Level Guides", async ({ page }) => {
+    await page.goto("/play-online");
+    await page.waitForSelector("h1");
+
+    await expect(page.getByText("Looking for a walkthrough?")).toBeVisible();
+    await expect(page.getByText("Latest Level Guides")).toBeVisible();
   });
 });

@@ -60,6 +60,8 @@ h1, h2, h3, p { margin-top: 0; }
 .site-header nav a:hover, .site-header nav a:focus-visible { color: var(--rose-deep); }
 .site-header nav .header-find { margin-left: 6px; padding-inline: 18px; border: 1px solid #ead9f1; border-radius: 18px; background: var(--surface-lavender); color: var(--purple-deep); }
 
+#find-level { scroll-margin-top: 100px; }
+
 .hero { display: grid; grid-template-columns: minmax(0, 1.04fr) minmax(380px, .96fr); align-items: center; gap: clamp(34px, 6vw, 76px); padding-block: clamp(54px, 8vw, 100px); }
 .hero-copy-column h1 { max-width: 660px; margin: 18px 0; font-size: clamp(2.6rem, 6vw, 5.1rem); }
 .soft-badge { width: fit-content; margin-bottom: 0; padding: 7px 14px; border-radius: 999px; background: var(--surface-pink); color: var(--rose-deep); font-size: .84rem; font-weight: 700; }
@@ -227,17 +229,10 @@ h2 { margin-bottom: 0; font-size: clamp(1.8rem, 4vw, 2.7rem); }
 .online-game-play-btn { margin-top: 4px; font-size: 1.1rem; padding: 0 36px; }
 .online-game-active { display: flex; flex-direction: column; gap: 14px; }
 .online-game-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-.online-game-controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-.online-game-ctrl-btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border: 1px solid var(--border); border-radius: 14px; background: #fff; color: var(--purple-deep); font-weight: 600; font-size: .9rem; cursor: pointer; text-decoration: none; }
-.online-game-ctrl-btn:hover { background: var(--surface-lavender); border-color: var(--lavender); }
+.online-game-timeout-actions { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .online-game-timeout-msg { margin: 0; padding: 12px 16px; border-radius: 14px; background: var(--surface-mint); color: #567b6f; font-size: .9rem; font-weight: 600; text-align: center; }
-.play-online-home-card { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 24px; padding: 32px; border: 1px solid var(--border); border-radius: 28px; background: linear-gradient(135deg, #fff1f6, #f4efff); box-shadow: var(--shadow-card); }
-.play-online-home-card-content { display: flex; flex-direction: column; gap: 8px; }
-.play-online-home-card-content h2 { margin-bottom: 0; font-size: 1.6rem; }
-.play-online-home-card-content p { margin: 0 0 8px; color: var(--text-soft); }
-.play-online-home-card-content .primary-button { width: fit-content; }
-.play-online-home-card-visual { flex-shrink: 0; }
-.play-online-home-card-visual .brand-mark { position: relative; width: 64px; height: 58px; display: block; }
+.online-game-retry-btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 8px 24px; border: 1px solid var(--border); border-radius: 14px; background: #fff; color: var(--purple-deep); font-weight: 600; font-size: .9rem; cursor: pointer; }
+.online-game-retry-btn:hover { background: var(--surface-lavender); border-color: var(--lavender); }
 .online-game-level-section { margin-top: 18px; }
 
 .site-footer { padding: 48px 0 calc(28px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: linear-gradient(135deg, #fff8ef, var(--surface-lavender)); }
@@ -299,12 +294,7 @@ h2 { margin-bottom: 0; font-size: clamp(1.8rem, 4vw, 2.7rem); }
   .alternative-preview { grid-template-columns: 108px 1fr; font-size: .9rem; }
   .alternative-preview img { width: 108px; height: 72px; }
   .related-level-link { font-size: .84rem; padding: 7px 11px; min-height: 38px; }
-  .online-game-frame { border-radius: 20px; min-height: 520px; aspect-ratio: 9/16; }
-  .online-game-controls { gap: 6px; }
-  .online-game-ctrl-btn { min-height: 40px; padding: 6px 12px; font-size: .84rem; }
-  .play-online-home-card { grid-template-columns: 1fr; gap: 16px; padding: 24px; text-align: center; }
-  .play-online-home-card-content .primary-button { width: 100%; }
-  .play-online-home-card-visual { display: none; }
+.online-game-frame { border-radius: 20px; }
   .footer-inner { align-items: flex-start; flex-direction: column; }
   .footer-links { flex-wrap: wrap; }
   .footer-seo { grid-template-columns: 1fr; gap: 24px; }

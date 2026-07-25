@@ -19,6 +19,7 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run check:levels
+      - run: npm run check:internal-links
       - run: npm test
       - run: npm run build:vercel
       - name: Install Playwright Chromium

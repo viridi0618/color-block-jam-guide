@@ -83,10 +83,27 @@ export default function PlayOnlinePage() {
       <header className="page-heading">
         <p className="soft-badge">Browser game</p>
         <h1>Play Color Block Jam Online</h1>
-        <p>Start a quick browser puzzle game.</p>
+        <p>Start a quick browser puzzle game right here.</p>
       </header>
 
-      <OnlineGamePlayer sourcePage="play_online" />
+      <OnlineGamePlayer sourcePage="play_online" compact />
+
+      <section className="content-card">
+        <h2>How to Play</h2>
+        <p>
+          Click Play Now above to start the game in your browser via a
+          third-party embed. The game loads directly on this page.
+        </p>
+      </section>
+
+      <section className="content-card">
+        <h2>About This Game</h2>
+        <p>
+          This embedded version of Color Block Jam is provided by a third-party
+          platform. Game availability and features may vary. Check the official
+          Color Block Jam app for the full experience.
+        </p>
+      </section>
 
       <section className="content-card">
         <h2>Looking for a walkthrough?</h2>

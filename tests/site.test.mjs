@@ -495,15 +495,20 @@ test("footer: featured ranges are all from real levelRanges", async () => {
   }
 });
 
-test("footer layout contains Featured Level Walkthroughs section", async () => {
+test("footer layout contains only approved links", async () => {
   const layout = await readFile(new URL("app/layout.tsx", root), "utf8");
-  assert.match(layout, /Featured Level Walkthroughs/);
-  assert.match(layout, /Browse by Level Range/);
-  assert.match(layout, /getFeaturedLevels/);
-  assert.match(layout, /getFeaturedRanges/);
-  // Original links still exist
-  assert.match(layout, /\/download/);
-  assert.match(layout, /\/faq/);
+  // Footer should NOT contain featured walkthroughs, ranges, download, faq, about
+  assert.doesNotMatch(layout, /Featured Level Walkthroughs/);
+  assert.doesNotMatch(layout, /Browse by Level Range/);
+  assert.doesNotMatch(layout, /getFeaturedLevels/);
+  assert.doesNotMatch(layout, /getFeaturedRanges/);
+  assert.doesNotMatch(layout, /\/download/);
+  assert.doesNotMatch(layout, /\/faq/);
+  assert.doesNotMatch(layout, /\/play-on-pc/);
+  assert.doesNotMatch(layout, /\/about-color-block-jam/);
+  // But should contain the 4 approved links
+  assert.match(layout, /\/levels/);
+  assert.match(layout, /\/play-online/);
   assert.match(layout, /\/privacy/);
 });
 
@@ -542,11 +547,11 @@ test("related levels: all are approved", async () => {
   }
 });
 
-test("related levels: total count is 8-10", async () => {
+test("related levels: total count is 4-6", async () => {
   const { getRelatedLevels } = await import("../lib/internal-links.ts");
   const result = getRelatedLevels(500);
-  assert.ok(result.length >= 8, `Expected at least 8, got ${result.length}`);
-  assert.ok(result.length <= 10, `Expected at most 10, got ${result.length}`);
+  assert.ok(result.length >= 4, `Expected at least 4, got ${result.length}`);
+  assert.ok(result.length <= 6, `Expected at most 6, got ${result.length}`);
 });
 
 test("related levels: includes at least one neighbor", async () => {
@@ -593,7 +598,7 @@ test("related levels: does not use Math.random", async () => {
 test("level page includes related levels section", async () => {
   const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
   assert.match(levelPage, /getRelatedLevels/);
-  assert.match(levelPage, /More Levels to Explore/);
+  assert.match(levelPage, /More Color Block Jam Walkthroughs/);
   assert.match(levelPage, /related-levels-nav/);
   assert.match(levelPage, /Browse All Levels/);
 });
@@ -618,53 +623,16 @@ test("related levels: Level 340 same-range levels <= 4", async () => {
   );
 });
 
-test("related levels: Level 340 has at least 2 distant levels", async () => {
-  const { getRelatedLevels } = await import("../lib/internal-links.ts");
-  const result = getRelatedLevels(340);
-  const { rangeStart, rangeEnd } = levelRange(340);
-  const distant = result.filter((r) => r.levelId < rangeStart || r.levelId > rangeEnd);
-  assert.ok(
-    distant.length >= 2,
-    `Expected at least 2 distant, got ${distant.length}: ${distant.map((r) => r.levelId).join(",")}`,
-  );
-});
-
-test("related levels: Level 1 has distant levels (boundary)", async () => {
-  const { getRelatedLevels } = await import("../lib/internal-links.ts");
-  const result = getRelatedLevels(1);
-  const { rangeStart, rangeEnd } = levelRange(1);
-  const distant = result.filter((r) => r.levelId < rangeStart || r.levelId > rangeEnd);
-  assert.ok(
-    distant.length >= 2,
-    `Expected at least 2 distant for Level 1, got ${distant.length}`,
-  );
-});
-
-test("related levels: last approved level has distant levels (boundary)", async () => {
-  const { getRelatedLevels } = await import("../lib/internal-links.ts");
-  const levels = JSON.parse(
-    await readFile(new URL("data/levels/all-levels.json", root), "utf8"),
-  );
-  const lastId = levels[levels.length - 1].levelId;
-  const result = getRelatedLevels(lastId);
-  const { rangeStart, rangeEnd } = levelRange(lastId);
-  const distant = result.filter((r) => r.levelId < rangeStart || r.levelId > rangeEnd);
-  assert.ok(
-    distant.length >= 2,
-    `Expected at least 2 distant for last level ${lastId}, got ${distant.length}`,
-  );
-});
-
-test("related levels: page total links (levels + range + Browse All) <= 12", async () => {
+test("related levels: page total links (levels + range + Browse All) <= 8", async () => {
   const { getRelatedLevels } = await import("../lib/internal-links.ts");
   const result = getRelatedLevels(340);
   const totalLinks = result.length + 2; // + range page + All Levels
   assert.ok(
-    totalLinks <= 12,
-    `Expected total links <= 12, got ${totalLinks} (${result.length} levels + 2 page links)`,
+    totalLinks <= 8,
+    `Expected total links <= 8, got ${totalLinks} (${result.length} levels + 2 page links)`,
   );
-  assert.ok(result.length >= 8, `Expected at least 8 level links, got ${result.length}`);
-  assert.ok(result.length <= 10, `Expected at most 10 level links, got ${result.length}`);
+  assert.ok(result.length >= 4, `Expected at least 4 level links, got ${result.length}`);
+  assert.ok(result.length <= 6, `Expected at most 6 level links, got ${result.length}`);
 });
 
 test("related levels: same levelId returns identical results (determinism)", async () => {
@@ -772,7 +740,7 @@ test("footer: unified disclaimer present", async () => {
 test("level page: Related Levels, range link, Browse All still present", async () => {
   const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
   assert.match(levelPage, /getRelatedLevels/);
-  assert.match(levelPage, /More Levels to Explore/);
+  assert.match(levelPage, /More Color Block Jam Walkthroughs/);
   assert.match(levelPage, /Browse All Levels/);
   assert.match(levelPage, /Levels \{range\.start\}/);
 });
@@ -818,14 +786,12 @@ test("online game: no hardcoded 1Games URL in page components", async () => {
   assert.doesNotMatch(homePage, /1games\.io/);
   // The player component reads from config, not hardcoded
   assert.match(player, /onlineGameConfig\.embedUrl/);
-  assert.match(player, /onlineGameConfig\.openUrl/);
 });
 
 test("online game: all game URLs come from config", async () => {
   const player = await readFile(new URL("components/OnlineGamePlayer.tsx", root), "utf8");
   assert.match(player, /onlineGameConfig/);
   assert.match(player, /onlineGameConfig\.embedUrl/);
-  assert.match(player, /onlineGameConfig\.openUrl/);
   assert.match(player, /onlineGameConfig\.coverUrl/);
   assert.match(player, /onlineGameAvailable/);
 });
@@ -853,7 +819,7 @@ test("online game player: is a client component", async () => {
 test("online game player: supports sourcePage prop", async () => {
   const player = await readFile(new URL("components/OnlineGamePlayer.tsx", root), "utf8");
   assert.match(player, /sourcePage/);
-  assert.match(player, /"play_online" \| "level"/);
+  assert.match(player, /"home" \| "play_online" \| "level"/);
 });
 
 test("online game player: supports sourceLevel prop for analytics only", async () => {
@@ -876,23 +842,12 @@ test("online game player: Play Now button exists", async () => {
   assert.match(player, /Play Now/);
 });
 
-test("online game player: Reload Game button exists", async () => {
+test("online game player: Try Again button only in timeout state", async () => {
   const player = await readFile(new URL("components/OnlineGamePlayer.tsx", root), "utf8");
-  assert.match(player, /Reload Game/);
-});
-
-test("online game player: Fullscreen button exists", async () => {
-  const player = await readFile(new URL("components/OnlineGamePlayer.tsx", root), "utf8");
-  assert.match(player, /Fullscreen/);
-  assert.match(player, /requestFullscreen/);
-});
-
-test("online game player: Open in New Tab uses config openUrl", async () => {
-  const player = await readFile(new URL("components/OnlineGamePlayer.tsx", root), "utf8");
-  assert.match(player, /Open Game in New Tab/);
-  assert.match(player, /onlineGameConfig\.openUrl/);
-  assert.match(player, /target="_blank"/);
-  assert.match(player, /noopener noreferrer/);
+  assert.match(player, /Try Again/);
+  // Try Again should only appear inside the timeout branch
+  assert.match(player, /playerState === "timeout"/);
+  assert.match(player, /handleTryAgain/);
 });
 
 test("online game player: iframe has correct attributes", async () => {
@@ -906,7 +861,7 @@ test("online game player: iframe has correct attributes", async () => {
 test("online game player: has loading timeout fallback", async () => {
   const player = await readFile(new URL("components/OnlineGamePlayer.tsx", root), "utf8");
   assert.match(player, /timeout/);
-  assert.match(player, /Having trouble loading the game/);
+  assert.match(player, /The game is taking longer than expected to load/);
   assert.match(player, /setTimeout/);
 });
 
@@ -917,10 +872,17 @@ test("online game player: returns null when disabled", async () => {
 
 // ─── Play Online Page ────────────────────────────────────────────────
 
-test("play-online page: uses OnlineGamePlayer with sourcePage play_online", async () => {
+test("play-online page: uses OnlineGamePlayer with sourcePage play_online and compact", async () => {
   const page = await readFile(new URL("app/play-online/page.tsx", root), "utf8");
   assert.match(page, /OnlineGamePlayer/);
   assert.match(page, /sourcePage="play_online"/);
+  assert.match(page, /compact/);
+});
+
+test("play-online page: has rich content sections", async () => {
+  const page = await readFile(new URL("app/play-online/page.tsx", root), "utf8");
+  assert.match(page, /How to Play/);
+  assert.match(page, /About This Game/);
 });
 
 test("play-online page: has correct metadata", async () => {
@@ -1017,34 +979,58 @@ test("level page: existing content preserved", async () => {
   assert.match(levelPage, /Video walkthrough by/);
 });
 
-// ─── Homepage Play Online Card ──────────────────────────────────────
+// ─── Homepage Online Game ───────────────────────────────────────────
 
-test("homepage: has Play Online card", async () => {
+test("homepage: renders OnlineGamePlayer with compact", async () => {
+  const home = await readFile(new URL("app/page.tsx", root), "utf8");
+  assert.match(home, /OnlineGamePlayer/);
+  assert.match(home, /sourcePage="home"/);
+  assert.match(home, /compact/);
+});
+
+test("homepage: has Play Color Block Jam Online section", async () => {
   const home = await readFile(new URL("app/page.tsx", root), "utf8");
   assert.match(home, /Play Color Block Jam Online/);
   assert.match(home, /Take a Puzzle Break/);
-  assert.match(home, /play-online-home-card/);
-  assert.match(home, /TrackedPlayOnlineLink/);
-  // "Play Online" link text lives in TrackedPlayOnlineLink component
+  assert.match(home, /without leaving this page/);
 });
 
-test("homepage: Play Online card does not render iframe", async () => {
+test("homepage: no longer uses TrackedPlayOnlineLink", async () => {
   const home = await readFile(new URL("app/page.tsx", root), "utf8");
-  assert.doesNotMatch(home, /<iframe/);
-  assert.doesNotMatch(home, /OnlineGamePlayer/);
+  assert.doesNotMatch(home, /TrackedPlayOnlineLink/);
 });
 
-test("homepage: Play Online card is a link, not a player", async () => {
+test("homepage: no jump to /play-online from main game section", async () => {
   const home = await readFile(new URL("app/page.tsx", root), "utf8");
-  assert.match(home, /TrackedPlayOnlineLink/);
-  // Level Search is still the primary feature
-  assert.match(home, /LevelSearch/);
-  // The Play Online card appears after Featured Walkthroughs
+  // The game section area should not contain a Link to /play-online
+  const playOnlineIdx = home.indexOf("Play Color Block Jam Online");
+  const sectionEnd = home.indexOf("Browse by Level Range", playOnlineIdx);
+  const gameSection = home.substring(playOnlineIdx, sectionEnd);
+  assert.doesNotMatch(gameSection, /href="\/play-online"/);
+});
+
+test("homepage: game section is after Featured Walkthroughs, before Browse by Level Range", async () => {
+  const home = await readFile(new URL("app/page.tsx", root), "utf8");
   const featuredIndex = home.indexOf("Featured Walkthroughs");
   const playOnlineIndex = home.indexOf("Play Color Block Jam Online");
   const rangeIndex = home.indexOf("Browse by Level Range");
-  assert.ok(featuredIndex < playOnlineIndex, "Play Online card should be after Featured Walkthroughs");
-  assert.ok(playOnlineIndex < rangeIndex, "Play Online card should be before Browse by Level Range");
+  assert.ok(featuredIndex < playOnlineIndex, "Play Online section should be after Featured Walkthroughs");
+  assert.ok(playOnlineIndex < rangeIndex, "Play Online section should be before Browse by Level Range");
+});
+
+test("homepage: TrackedPlayOnlineLink file no longer exists", async () => {
+  const fs = await import("node:fs/promises");
+  await assert.rejects(
+    () => fs.access(new URL("components/TrackedPlayOnlineLink.tsx", root)),
+    /ENOENT/,
+  );
+});
+
+// ─── Homepage no longer uses play-online-home-card ──────────────────
+
+test("homepage: no play-online-home-card class", async () => {
+  const home = await readFile(new URL("app/page.tsx", root), "utf8");
+  assert.doesNotMatch(home, /play-online-home-card/);
 });
 
 // ─── Analytics ──────────────────────────────────────────────────────
@@ -1074,19 +1060,11 @@ test("analytics: game_start not triggered on iframe onLoad", async () => {
   assert.doesNotMatch(handleIframeLoad, /game_start/);
 });
 
-test("analytics: game_reload event tracked", async () => {
+test("analytics: game_retry event tracked", async () => {
   const player = await readFile(new URL("components/OnlineGamePlayer.tsx", root), "utf8");
-  assert.match(player, /track\("game_reload"/);
-});
-
-test("analytics: game_fullscreen event tracked", async () => {
-  const player = await readFile(new URL("components/OnlineGamePlayer.tsx", root), "utf8");
-  assert.match(player, /track\("game_fullscreen"/);
-});
-
-test("analytics: game_open_external event tracked", async () => {
-  const player = await readFile(new URL("components/OnlineGamePlayer.tsx", root), "utf8");
-  assert.match(player, /track\("game_open_external"/);
+  assert.match(player, /track\("game_retry"/);
+  // game_retry should only fire on Try Again, which is in timeout state
+  assert.match(player, /handleTryAgain/);
 });
 
 test("analytics: source_level is only in analytics, not in iframe URL", async () => {
@@ -1508,15 +1486,15 @@ test("analytics: play_online_view event exists", async () => {
   assert.match(tracker, /useRef/);
 });
 
-test("analytics: play_online_from_home event exists", async () => {
-  const link = await readFile(
-    new URL("components/TrackedPlayOnlineLink.tsx", root),
+test("analytics: play_online_from_home event exists in OnlineGamePlayer", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
     "utf8",
   );
-  assert.match(link, /play_online_from_home/);
-  assert.match(link, /source_page.*home/);
-  assert.match(link, /href="\/play-online"/);
-  assert.match(link, /onClick/);
+  assert.match(player, /play_online_from_home/);
+  assert.match(player, /source_page.*home/);
+  // Should only fire when sourcePage === "home"
+  assert.match(player, /sourcePage === "home"/);
 });
 
 test("analytics: play_online_from_level event tracked on first click", async () => {
@@ -1575,12 +1553,12 @@ test("analytics: game_load_error dedup per reloadKey", async () => {
   assert.match(player, /errorTrackedForCycle\.current = reloadKey/);
 });
 
-test("analytics: game_load_error dedup allows fire after Reload", async () => {
+test("analytics: game_load_error dedup allows fire after Try Again", async () => {
   const player = await readFile(
     new URL("components/OnlineGamePlayer.tsx", root),
     "utf8",
   );
-  // After Reload: reloadKey increments, errorTrackedForCycle is reset by assignment,
+  // After Try Again: reloadKey increments, errorTrackedForCycle is reset by assignment,
   // so the next timeout cycle can fire again (new reloadKey !== old tracked value)
   assert.match(player, /setReloadKey\(\(k\) => k \+ 1\)/);
   assert.match(player, /errorTrackedForCycle\.current = reloadKey/);
@@ -1629,29 +1607,6 @@ test("analytics: gtag unavailable does not crash for all events", async () => {
   assert.match(analytics, /catch/);
 });
 
-// ─── Open Game in New Tab Behavior ──────────────────────────────────
-
-test("online game player: hides Open in New Tab when openUrl is empty", async () => {
-  const player = await readFile(
-    new URL("components/OnlineGamePlayer.tsx", root),
-    "utf8",
-  );
-  assert.match(player, /showOpenExternal/);
-  assert.match(player, /onlineGameConfig\.openUrl\.length > 0/);
-  assert.match(player, /showOpenExternal &&/);
-});
-
-test("online game player: does not render empty href for external link", async () => {
-  const player = await readFile(
-    new URL("components/OnlineGamePlayer.tsx", root),
-    "utf8",
-  );
-  // The external link should be conditionally rendered
-  assert.match(player, /\{showOpenExternal &&/);
-  // href should use config openUrl
-  assert.match(player, /onlineGameConfig\.openUrl/);
-});
-
 test("play-online page: default LevelSearch has no onValidSubmit", async () => {
   const homePage = await readFile(new URL("app/page.tsx", root), "utf8");
   // Homepage LevelSearch should NOT pass onValidSubmit
@@ -1679,20 +1634,37 @@ test("play online view tracker: returns null", async () => {
   assert.match(tracker, /return null/);
 });
 
-// ─── Homepage TrackedPlayOnlineLink ─────────────────────────────────
+// ─── Navigation ─────────────────────────────────────────────────────
 
-test("homepage: uses TrackedPlayOnlineLink for Play Online card", async () => {
-  const home = await readFile(new URL("app/page.tsx", root), "utf8");
-  assert.match(home, /TrackedPlayOnlineLink/);
-  assert.match(home, /<TrackedPlayOnlineLink \/>/);
+test("navigation: header includes Play Online link", async () => {
+  const layout = await readFile(new URL("app/layout.tsx", root), "utf8");
+  assert.match(layout, /href="\/play-online"/);
+  assert.match(layout, /Play Online/);
 });
 
-test("homepage: TrackedPlayOnlineLink is a client component", async () => {
-  const link = await readFile(
-    new URL("components/TrackedPlayOnlineLink.tsx", root),
-    "utf8",
-  );
-  assert.match(link, /"use client"/);
+test("navigation: header does not include About link", async () => {
+  const layout = await readFile(new URL("app/layout.tsx", root), "utf8");
+  // Find the header nav section
+  const headerStart = layout.indexOf('<nav aria-label="Main navigation">');
+  const headerEnd = layout.indexOf("</nav>", headerStart);
+  const headerNav = layout.substring(headerStart, headerEnd);
+  assert.doesNotMatch(headerNav, /\/about/);
+  assert.doesNotMatch(headerNav, />About</);
+});
+
+test("navigation: About link removed from footer", async () => {
+  const layout = await readFile(new URL("app/layout.tsx", root), "utf8");
+  const footerStart = layout.indexOf("<footer");
+  const footerEnd = layout.indexOf("</footer>", footerStart);
+  const footer = layout.substring(footerStart, footerEnd);
+  assert.doesNotMatch(footer, /\/about/);
+  assert.doesNotMatch(footer, />About</);
+});
+
+test("navigation: Find a Level keeps emphasis style", async () => {
+  const layout = await readFile(new URL("app/layout.tsx", root), "utf8");
+  assert.match(layout, /header-find/);
+  assert.match(layout, /Find a Level/);
 });
 
 // ─── YouTube Embed Domain ────────────────────────────────────────────
@@ -1761,10 +1733,13 @@ test("game frame: compact has max-width", async () => {
   assert.match(css, /compact.*online-game-frame.*max-width: 500px/);
 });
 
-test("game frame: mobile has aspect-ratio", async () => {
+test("game frame: mobile compact sizing", async () => {
   const css = await readFile(new URL("app/globals.css", root), "utf8");
-  // Mobile media query should have aspect-ratio on game frame
-  assert.match(css, /aspect-ratio: 9\/16/);
+  // Mobile media query should have compact game frame sizing
+  const mobileSection = css.match(/@media.*max-width: 680px.*?\{([\s\S]*?)\n\}/);
+  assert.ok(mobileSection, "mobile media query should exist");
+  const onlineGameFrame = css.match(/\.online-game-frame \{.*border-radius: 20px/);
+  assert.ok(onlineGameFrame, "mobile game frame should have border-radius");
 });
 
 // ─── Play Now Button Behavior ────────────────────────────────────────

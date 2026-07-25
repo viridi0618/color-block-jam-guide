@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LevelSearch } from "@/components/LevelSearch";
 import { approvedLevelIds, getRangeByLabel, levelRanges } from "@/lib/levels";
+import { siteUrl } from "@/lib/site-url";
 
 export const dynamicParams = false;
 export function generateStaticParams() { return levelRanges.map((range) => ({ range: range.label })); }
@@ -24,6 +25,18 @@ export default async function LevelRangePage({ params }: { params: Promise<{ ran
   const index = levelRanges.findIndex((item) => item.label === label);
   const previous = index > 0 ? levelRanges[index - 1] : null;
   const next = index < levelRanges.length - 1 ? levelRanges[index + 1] : null;
+
+  const itemListSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: range.levels.map((levelId, idx) => ({
+      "@type": "ListItem",
+      position: idx + 1,
+      name: `Color Block Jam Level ${levelId} Walkthrough`,
+      url: `${siteUrl}/level/${levelId}`,
+    })),
+  };
+
   return (
     <main className="shell page-shell">
       <nav className="breadcrumbs" aria-label="Breadcrumb">
@@ -40,9 +53,13 @@ export default async function LevelRangePage({ params }: { params: Promise<{ ran
       </div>
       <nav className="range-nav" aria-label="Range navigation">
         {previous ? <Link href={previous.slug}>← Levels {previous.start}–{previous.end}</Link> : <span />}
-        <Link href="/levels">All Levels</Link>
+        <Link href="/levels">Browse All Color Block Jam Levels</Link>
         {next ? <Link href={next.slug}>Levels {next.start}–{next.end} →</Link> : <span />}
       </nav>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}
+      />
     </main>
   );
 }

@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
-import { getFeaturedLevels, getFeaturedRanges } from "@/lib/internal-links";
 import { siteUrl } from "@/lib/site-url";
 import "./globals.css";
 
@@ -38,8 +37,6 @@ export const viewport: Viewport = {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const featuredLevels = getFeaturedLevels();
-  const featuredRanges = getFeaturedRanges();
   return (
     <html lang="en">
       <head>
@@ -60,10 +57,9 @@ export default function RootLayout({
               <small>Level Guide</small>
             </Link>
             <nav aria-label="Main navigation">
-              <Link href="/">Home</Link>
-              <Link href="/levels">All levels</Link>
-              <Link href="/about">About</Link>
-              <Link href="/levels" className="header-find">Find a Level</Link>
+              <Link href="/levels">All Levels</Link>
+              <Link href="/play-online">Play Online</Link>
+              <Link href="/#find-level" className="header-find">Find a Level</Link>
             </nav>
           </div>
         </header>
@@ -87,35 +83,10 @@ export default function RootLayout({
               </p>
             </div>
             <div className="footer-links">
-              <Link href="/levels">All levels</Link>
-              <Link href="/download">Download</Link>
-              <Link href="/play-on-pc">Play on PC</Link>
-              <Link href="/play-online">Play Online</Link>
-              <Link href="/about-color-block-jam">About the Game</Link>
-              <Link href="/faq">FAQ</Link>
+              <Link href="/">Color Block Jam Level Walkthroughs</Link>
+              <Link href="/levels">Browse All Color Block Jam Levels</Link>
+              <Link href="/play-online">Play Color Block Jam Online</Link>
               <Link href="/privacy">Privacy</Link>
-            </div>
-          </div>
-          <div className="shell footer-seo">
-            <div className="footer-seo-group">
-              <h3>Featured Level Walkthroughs</h3>
-              <nav aria-label="Featured level walkthroughs">
-                {featuredLevels.map((level) => (
-                  <Link key={level.levelId} href={level.href}>
-                    {level.label}
-                  </Link>
-                ))}
-              </nav>
-            </div>
-            <div className="footer-seo-group">
-              <h3>Browse by Level Range</h3>
-              <nav aria-label="Browse by level range">
-                {featuredRanges.map((range) => (
-                  <Link key={range.start} href={range.href}>
-                    {range.label}
-                  </Link>
-                ))}
-              </nav>
             </div>
           </div>
           </footer>
