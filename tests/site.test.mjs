@@ -1882,3 +1882,149 @@ test("play now: no Reload Game, Fullscreen, or Open Game in New Tab", async () =
   assert.doesNotMatch(player, /handleFullscreen/);
   assert.doesNotMatch(player, /handleOpenExternal/);
 });
+
+// ─── Breadcrumb & Internal Links ────────────────────────────────────
+
+test("breadcrumbs: /levels page has visible breadcrumb", async () => {
+  const levelsPage = await readFile(new URL("app/levels/page.tsx", root), "utf8");
+  assert.match(levelsPage, /className="breadcrumbs"/);
+  assert.match(levelsPage, /aria-label="Breadcrumb"/);
+  assert.match(levelsPage, /Home/);
+  assert.match(levelsPage, /All Levels/);
+});
+
+test("breadcrumbs: /levels Home links to /", async () => {
+  const levelsPage = await readFile(new URL("app/levels/page.tsx", root), "utf8");
+  assert.match(levelsPage, /href="\/"/);
+});
+
+test("breadcrumbs: /levels All Levels is current page span", async () => {
+  const levelsPage = await readFile(new URL("app/levels/page.tsx", root), "utf8");
+  assert.match(levelsPage, /aria-current="page"/);
+  // No link to /levels in breadcrumb (current page)
+  const breadcrumbMatch = levelsPage.match(/<nav[^>]*breadcrumbs[^>]*>([\s\S]*?)<\/nav>/);
+  if (breadcrumbMatch) {
+    assert.doesNotMatch(breadcrumbMatch[1], /href="\/levels"/);
+  }
+});
+
+test("breadcrumbs: /levels has BreadcrumbList with 2 elements", async () => {
+  const levelsPage = await readFile(new URL("app/levels/page.tsx", root), "utf8");
+  assert.match(levelsPage, /BreadcrumbList/);
+  assert.match(levelsPage, /position: 1/);
+  assert.match(levelsPage, /position: 2/);
+});
+
+test("breadcrumbs: /levels BreadcrumbList URLs are absolute", async () => {
+  const levelsPage = await readFile(new URL("app/levels/page.tsx", root), "utf8");
+  assert.match(levelsPage, /siteUrl/);
+  assert.match(levelsPage, /\$\{siteUrl\}\/levels/);
+});
+
+test("breadcrumbs: /levels still has ItemList", async () => {
+  const levelsPage = await readFile(new URL("app/levels/page.tsx", root), "utf8");
+  assert.match(levelsPage, /ItemList/);
+});
+
+test("breadcrumbs: range page has 3-level visible breadcrumb", async () => {
+  const rangePage = await readFile(new URL("app/levels/[range]/page.tsx", root), "utf8");
+  assert.match(rangePage, /className="breadcrumbs"/);
+  assert.match(rangePage, /Home/);
+  assert.match(rangePage, /All Levels/);
+  assert.match(rangePage, /Levels/);
+});
+
+test("breadcrumbs: range current page has aria-current", async () => {
+  const rangePage = await readFile(new URL("app/levels/[range]/page.tsx", root), "utf8");
+  assert.match(rangePage, /aria-current="page"/);
+});
+
+test("breadcrumbs: range has BreadcrumbList with 3 elements", async () => {
+  const rangePage = await readFile(new URL("app/levels/[range]/page.tsx", root), "utf8");
+  assert.match(rangePage, /BreadcrumbList/);
+  assert.match(rangePage, /position: 1/);
+  assert.match(rangePage, /position: 2/);
+  assert.match(rangePage, /position: 3/);
+});
+
+test("breadcrumbs: range BreadcrumbList has correct URL structure", async () => {
+  const rangePage = await readFile(new URL("app/levels/[range]/page.tsx", root), "utf8");
+  assert.match(rangePage, /siteUrl/);
+  assert.match(rangePage, /range\.slug/);
+});
+
+test("breadcrumbs: range page still has ItemList", async () => {
+  const rangePage = await readFile(new URL("app/levels/[range]/page.tsx", root), "utf8");
+  assert.match(rangePage, /ItemList/);
+});
+
+test("breadcrumbs: range page outputs both ItemList and BreadcrumbList", async () => {
+  const rangePage = await readFile(new URL("app/levels/[range]/page.tsx", root), "utf8");
+  assert.match(rangePage, /ItemList/);
+  assert.match(rangePage, /BreadcrumbList/);
+});
+
+test("breadcrumbs: level page has four-level BreadcrumbList", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.match(levelPage, /BreadcrumbList/);
+  assert.match(levelPage, /position: 1/);
+  assert.match(levelPage, /position: 2/);
+  assert.match(levelPage, /position: 3/);
+  assert.match(levelPage, /position: 4/);
+});
+
+test("breadcrumbs: level page breadcrumb has aria-current on current level", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.match(levelPage, /aria-current="page"/);
+});
+
+test("breadcrumbs: level page still has VideoObject", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.match(levelPage, /VideoObject/);
+});
+
+test("intent links: does not contain Download", async () => {
+  const intentLinks = await readFile(new URL("components/IntentLinks.tsx", root), "utf8");
+  assert.doesNotMatch(intentLinks, /\/download/);
+  assert.doesNotMatch(intentLinks, /Download the Game/);
+});
+
+test("intent links: does not contain Play on PC", async () => {
+  const intentLinks = await readFile(new URL("components/IntentLinks.tsx", root), "utf8");
+  assert.doesNotMatch(intentLinks, /\/play-on-pc/);
+  assert.doesNotMatch(intentLinks, /Play on PC/);
+});
+
+test("intent links: does not contain FAQ", async () => {
+  const intentLinks = await readFile(new URL("components/IntentLinks.tsx", root), "utf8");
+  assert.doesNotMatch(intentLinks, /\/faq/);
+  assert.doesNotMatch(intentLinks, /Game FAQ/);
+});
+
+test("intent links: contains Find a Level", async () => {
+  const intentLinks = await readFile(new URL("components/IntentLinks.tsx", root), "utf8");
+  assert.match(intentLinks, /Find a Level/);
+  assert.match(intentLinks, /#find-level/);
+});
+
+test("intent links: contains Browse All Color Block Jam Levels", async () => {
+  const intentLinks = await readFile(new URL("components/IntentLinks.tsx", root), "utf8");
+  assert.match(intentLinks, /Browse All Color Block Jam Levels/);
+  assert.match(intentLinks, /\/levels/);
+});
+
+test("intent links: contains Play Online", async () => {
+  const intentLinks = await readFile(new URL("components/IntentLinks.tsx", root), "utf8");
+  assert.match(intentLinks, /Play Online/);
+  assert.match(intentLinks, /\/play-online/);
+});
+
+test("anchor text: homepage uses descriptive /levels link", async () => {
+  const homepage = await readFile(new URL("app/page.tsx", root), "utf8");
+  assert.match(homepage, /Browse All Color Block Jam Levels/);
+});
+
+test("anchor text: level page related section uses descriptive /levels link", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.match(levelPage, /Browse All Color Block Jam Levels/);
+});

@@ -60,8 +60,8 @@ export default async function LevelPage({ params }: { params: Promise<{ levelId:
   return (
     <main className="shell page-shell level-page">
       <nav className="breadcrumbs" aria-label="Breadcrumb">
-        <Link href="/">Home</Link><span>›</span><Link href="/levels">All Levels</Link><span>›</span>
-        <Link href={range.slug}>Levels {range.start}–{range.end}</Link><span>›</span><span>Level {levelId}</span>
+        <Link href="/">Home</Link><span aria-hidden="true">›</span><Link href="/levels">All Levels</Link><span aria-hidden="true">›</span>
+        <Link href={range.slug}>Levels {range.start}–{range.end}</Link><span aria-hidden="true">›</span><span aria-current="page">Level {levelId}</span>
       </nav>
       <header className="level-heading">
         <span className="source-pill">Video Walkthrough</span>
@@ -124,7 +124,7 @@ export default async function LevelPage({ params }: { params: Promise<{ levelId:
               Levels {range.start}–{range.end}
             </Link>
             <Link href="/levels" className="related-level-link all-link">
-              Browse All Levels
+              Browse All Color Block Jam Levels
             </Link>
           </nav>
         </section>

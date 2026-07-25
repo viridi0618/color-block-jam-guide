@@ -74,7 +74,7 @@ export default function Home() {
       <section className="home-section shell">
         <div className="section-heading"><div><p className="kicker">Pick a chapter</p><h2>Browse by Level Range</h2></div></div>
         <LevelRanges ranges={levelRanges.slice(0, 8)} compact />
-        <Link className="center-link" href="/levels">Browse All Levels →</Link>
+        <Link className="center-link" href="/levels">Browse All Color Block Jam Levels →</Link>
       </section>
 
       <section className="home-section shell">

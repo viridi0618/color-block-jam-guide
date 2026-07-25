@@ -236,6 +236,145 @@ async function main() {
 
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);
+
+  // ── 23. /levels page has visible breadcrumb ──
+  check(
+    "/levels page has visible breadcrumb",
+    levelsPage.includes('className="breadcrumbs"')
+      && levelsPage.includes("aria-label=\"Breadcrumb\""),
+  );
+
+  // ── 24. /levels breadcrumb is Home → All Levels ──
+  check(
+    "/levels breadcrumb is Home → All Levels",
+    levelsPage.includes("Home")
+      && levelsPage.includes("All Levels")
+      && levelsPage.includes('aria-current="page"'),
+  );
+
+  // ── 25. /levels current page does not link to itself ──
+  check(
+    "/levels current page does not link to itself",
+    (() => {
+      const breadcrumbMatch = levelsPage.match(/<nav[^>]*breadcrumbs[^>]*>([\s\S]*?)<\/nav>/);
+      if (!breadcrumbMatch) return false;
+      const breadcrumbContent = breadcrumbMatch[1];
+      const allLevelsLink = breadcrumbContent.match(/href="\/levels"[^>]*>\s*All Levels\s*</);
+      return !allLevelsLink;
+    })(),
+  );
+
+  // ── 26. /levels has BreadcrumbList JSON-LD ──
+  check(
+    "/levels has BreadcrumbList JSON-LD",
+    levelsPage.includes("BreadcrumbList")
+      && levelsPage.includes('@type": "ListItem"')
+      && levelsPage.includes("position: 1")
+      && levelsPage.includes("position: 2"),
+  );
+
+  // ── 27. /levels still has ItemList ──
+  check(
+    "/levels still has ItemList",
+    levelsPage.includes("ItemList"),
+  );
+
+  // ── 28. /levels/[range] has BreadcrumbList JSON-LD ──
+  check(
+    "/levels/[range] has BreadcrumbList JSON-LD",
+    levelsRangePage.includes("BreadcrumbList")
+      && levelsRangePage.includes("position: 1")
+      && levelsRangePage.includes("position: 2")
+      && levelsRangePage.includes("position: 3"),
+  );
+
+  // ── 29. range BreadcrumbList is Home → All Levels → Current Range ──
+  check(
+    "range BreadcrumbList is Home → All Levels → Current Range",
+    levelsRangePage.includes('name: "Home"')
+      && levelsRangePage.includes('name: "All Levels"')
+      && levelsRangePage.includes("Levels"),
+  );
+
+  // ── 30. range visible breadcrumb matches schema names ──
+  check(
+    "range visible breadcrumb matches schema names",
+    levelsRangePage.includes("All Levels")
+      && levelsRangePage.includes("Levels"),
+  );
+
+  // ── 31. range current page does not link to itself ──
+  check(
+    "range current page does not link to itself",
+    levelsRangePage.includes('aria-current="page"'),
+  );
+
+  // ── 32. level page has four-level BreadcrumbList ──
+  check(
+    "level page has four-level BreadcrumbList",
+    levelPage.includes("position: 1")
+      && levelPage.includes("position: 2")
+      && levelPage.includes("position: 3")
+      && levelPage.includes("position: 4"),
+  );
+
+  // ── 33. level page current level has aria-current="page" ──
+  check(
+    "level page breadcrumb has aria-current=\"page\" on current level",
+    levelPage.includes('aria-current="page"'),
+  );
+
+  // ── 34. IntentLinks does NOT contain /download ──
+  const intentLinks = await readFile(new URL("components/IntentLinks.tsx", root), "utf-8");
+  check(
+    "IntentLinks does NOT contain /download",
+    !intentLinks.includes("/download"),
+  );
+
+  // ── 35. IntentLinks does NOT contain /play-on-pc ──
+  check(
+    "IntentLinks does NOT contain /play-on-pc",
+    !intentLinks.includes("/play-on-pc"),
+  );
+
+  // ── 36. IntentLinks does NOT contain /faq ──
+  check(
+    "IntentLinks does NOT contain /faq",
+    !intentLinks.includes("/faq"),
+  );
+
+  // ── 37. IntentLinks contains /#find-level ──
+  check(
+    "IntentLinks contains /#find-level",
+    intentLinks.includes("/#find-level"),
+  );
+
+  // ── 38. IntentLinks contains /levels ──
+  check(
+    "IntentLinks contains /levels",
+    intentLinks.includes('"/levels"'),
+  );
+
+  // ── 39. IntentLinks contains /play-online ──
+  check(
+    "IntentLinks contains /play-online",
+    intentLinks.includes("/play-online"),
+  );
+
+  // ── 40. Homepage /levels anchor text is descriptive ──
+  check(
+    "Homepage /levels anchor text is \"Browse All Color Block Jam Levels\"",
+    homepage.includes("Browse All Color Block Jam Levels"),
+  );
+
+  // ── 41. Level page related section uses descriptive /levels anchor text ──
+  check(
+    "Level page related section uses \"Browse All Color Block Jam Levels\"",
+    levelPage.includes("Browse All Color Block Jam Levels"),
+  );
+
+  console.log(`\n${passed} passed, ${failed} failed`);
+  if (failed > 0) process.exit(1);
 }
 
 main();

@@ -1,10 +1,9 @@
 import Link from "next/link";
 
 const links = [
-  { href: "/download", label: "Download the Game", text: "Official iOS and Android links", icon: "↓" },
-  { href: "/play-on-pc", label: "Play on PC", text: "Official Windows option", icon: "▣" },
-  { href: "/play-online", label: "Play Online", text: "Browser availability explained", icon: "◎" },
-  { href: "/faq", label: "Game FAQ", text: "Quick answers and help", icon: "?" },
+  { href: "/#find-level", label: "Find a Level", text: "Jump directly to your walkthrough", icon: "⌕" },
+  { href: "/levels", label: "Browse All Color Block Jam Levels", text: "Explore every available walkthrough", icon: "▦" },
+  { href: "/play-online", label: "Play Online", text: "Start a browser puzzle game", icon: "◎" },
 ];
 
 export function IntentLinks() {
