@@ -8,6 +8,10 @@ interface OnlineGamePlayerProps {
   sourcePage: "play_online" | "level";
   sourceLevel?: number;
   compact?: boolean;
+  /** If true, the player was already started this session (sessionStorage). Skips idle state. */
+  gameStarted?: boolean;
+  /** Called when the user clicks Play Now for the first time. */
+  onGameStart?: () => void;
 }
 
 type PlayerState = "idle" | "loading" | "playing" | "timeout";
@@ -16,11 +20,23 @@ export function OnlineGamePlayer({
   sourcePage,
   sourceLevel,
   compact = false,
+  gameStarted = false,
+  onGameStart,
 }: OnlineGamePlayerProps) {
   const [playerState, setPlayerState] = useState<PlayerState>("idle");
   const [reloadKey, setReloadKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasAutoStarted = useRef(false);
+
+  // Auto-start if game was previously started in this tab session (sessionStorage recovery).
+  // Only fires once, and only when gameStarted is true while playerState is still idle.
+  useEffect(() => {
+    if (gameStarted && !hasAutoStarted.current && playerState === "idle") {
+      hasAutoStarted.current = true;
+      setPlayerState("loading");
+    }
+  }, [gameStarted, playerState]);
 
   const handlePlay = useCallback(() => {
     setPlayerState("loading");
@@ -29,7 +45,8 @@ export function OnlineGamePlayer({
       source_page: sourcePage,
       ...(sourceLevel != null ? { source_level: sourceLevel } : {}),
     });
-  }, [sourcePage, sourceLevel]);
+    onGameStart?.();
+  }, [sourcePage, sourceLevel, onGameStart]);
 
   const handleIframeLoad = useCallback(() => {
     if (timeoutRef.current) {
@@ -42,8 +59,11 @@ export function OnlineGamePlayer({
   const handleReload = useCallback(() => {
     setPlayerState("loading");
     setReloadKey((k) => k + 1);
-    track("game_reload", { source_page: sourcePage });
-  }, [sourcePage]);
+    track("game_reload", {
+      source_page: sourcePage,
+      ...(sourceLevel != null ? { source_level: sourceLevel } : {}),
+    });
+  }, [sourcePage, sourceLevel]);
 
   const handleFullscreen = useCallback(() => {
     const el = iframeRef.current;
@@ -54,12 +74,18 @@ export function OnlineGamePlayer({
         // fullscreen not supported, silently ignore
       }
     }
-    track("game_fullscreen", { source_page: sourcePage });
-  }, [sourcePage]);
+    track("game_fullscreen", {
+      source_page: sourcePage,
+      ...(sourceLevel != null ? { source_level: sourceLevel } : {}),
+    });
+  }, [sourcePage, sourceLevel]);
 
   const handleOpenExternal = useCallback(() => {
-    track("game_open_external", { source_page: sourcePage });
-  }, [sourcePage]);
+    track("game_open_external", {
+      source_page: sourcePage,
+      ...(sourceLevel != null ? { source_level: sourceLevel } : {}),
+    });
+  }, [sourcePage, sourceLevel]);
 
   // Loading timeout: after 12 seconds, show fallback
   useEffect(() => {

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AlternativeVideo } from "@/components/AlternativeVideo";
-import { OnlineGamePlayer } from "@/components/OnlineGamePlayer";
 import { ShareLevel } from "@/components/ShareLevel";
 import { VideoEmbed } from "@/components/VideoEmbed";
 import { getAdjacentLevels, getLevel, getRangeForLevel, levels } from "@/lib/levels";
@@ -130,13 +129,6 @@ export default async function LevelPage({ params }: { params: Promise<{ levelId:
           </nav>
         </section>
       ) : null}
-      <section className="content-card online-game-level-section">
-        <OnlineGamePlayer
-          sourcePage="level"
-          sourceLevel={levelId}
-          compact
-        />
-      </section>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
     </main>

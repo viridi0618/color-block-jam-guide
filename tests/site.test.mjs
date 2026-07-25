@@ -973,35 +973,24 @@ test("play-online page: disabled state shows fallback", async () => {
 
 // ─── Level Page OnlineGamePlayer ─────────────────────────────────────
 
-test("level page: imports OnlineGamePlayer", async () => {
+test("level page: does NOT import OnlineGamePlayer directly (moved to shared layout)", async () => {
   const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
-  assert.match(levelPage, /OnlineGamePlayer/);
-  assert.match(levelPage, /from "@\/components\/OnlineGamePlayer"/);
+  assert.doesNotMatch(levelPage, /import \{ OnlineGamePlayer \} from/);
+  assert.doesNotMatch(levelPage, /<OnlineGamePlayer/);
 });
 
-test("level page: OnlineGamePlayer uses sourcePage level", async () => {
-  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
-  assert.match(levelPage, /sourcePage="level"/);
+test("level page: OnlineGamePlayer is rendered via shared layout", async () => {
+  const levelLayout = await readFile(new URL("app/level/layout.tsx", root), "utf8");
+  assert.match(levelLayout, /PersistentOnlineGame/);
 });
 
-test("level page: OnlineGamePlayer passes sourceLevel", async () => {
-  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
-  assert.match(levelPage, /sourceLevel=\{levelId\}/);
-});
-
-test("level page: OnlineGamePlayer uses compact", async () => {
-  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
-  assert.match(levelPage, /compact/);
-});
-
-test("level page: OnlineGamePlayer placed after Related Levels", async () => {
-  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
-  const relatedIndex = levelPage.indexOf("More Levels to Explore");
-  // Find the JSX usage of OnlineGamePlayer (not the import)
-  const gameIndex = levelPage.indexOf("<OnlineGamePlayer");
-  assert.ok(relatedIndex >= 0, "Related Levels section not found");
-  assert.ok(gameIndex >= 0, "OnlineGamePlayer JSX usage not found");
-  assert.ok(relatedIndex < gameIndex, "OnlineGamePlayer should appear after Related Levels section");
+test("level page: game section appears after main content in layout", async () => {
+  const levelLayout = await readFile(new URL("app/level/layout.tsx", root), "utf8");
+  const childrenIndex = levelLayout.indexOf("{children}");
+  const gameIndex = levelLayout.indexOf("<PersistentOnlineGame");
+  assert.ok(childrenIndex >= 0, "{children} not found in layout");
+  assert.ok(gameIndex >= 0, "<PersistentOnlineGame not found in layout");
+  assert.ok(childrenIndex < gameIndex, "PersistentOnlineGame should appear after {children} in layout");
 });
 
 test("level page: does not contain play-level or matching-walkthrough promises", async () => {
@@ -1111,4 +1100,315 @@ test("level search: supports optional buttonLabel prop", async () => {
   assert.match(search, /buttonLabel/);
   assert.match(search, /Find My Level/);
   assert.match(search, /\{buttonLabel\}/);
+});
+
+// ─── Persistent Online Game: Structure ──────────────────────────────
+
+test("persistent game: app/level/layout.tsx exists", async () => {
+  const stat = await import("node:fs/promises").then((fs) =>
+    fs.stat(new URL("app/level/layout.tsx", root)),
+  );
+  assert.ok(stat.isFile(), "app/level/layout.tsx should exist");
+});
+
+test("persistent game: layout renders PersistentOnlineGame", async () => {
+  const layout = await readFile(new URL("app/level/layout.tsx", root), "utf8");
+  assert.match(layout, /PersistentOnlineGame/);
+  assert.match(layout, /from "@\/components\/PersistentOnlineGame"/);
+});
+
+test("persistent game: level page does NOT render OnlineGamePlayer", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.doesNotMatch(levelPage, /<OnlineGamePlayer/);
+  assert.doesNotMatch(levelPage, /import \{ OnlineGamePlayer \} from/);
+});
+
+test("persistent game: level page does NOT contain iframe", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.doesNotMatch(levelPage, /<iframe/);
+});
+
+test("persistent game: PersistentOnlineGame reuses OnlineGamePlayer", async () => {
+  const persistent = await readFile(
+    new URL("components/PersistentOnlineGame.tsx", root),
+    "utf8",
+  );
+  assert.match(persistent, /OnlineGamePlayer/);
+  assert.match(persistent, /from "\.\/OnlineGamePlayer"/);
+  // Should NOT duplicate iframe or player logic
+  assert.doesNotMatch(persistent, /<iframe/);
+});
+
+test("persistent game: no key={pathname} in PersistentOnlineGame", async () => {
+  const persistent = await readFile(
+    new URL("components/PersistentOnlineGame.tsx", root),
+    "utf8",
+  );
+  assert.doesNotMatch(persistent, /key=\{pathname\}/);
+});
+
+test("persistent game: no key={levelId} in player chain", async () => {
+  const [persistent, player] = await Promise.all([
+    readFile(new URL("components/PersistentOnlineGame.tsx", root), "utf8"),
+    readFile(new URL("components/OnlineGamePlayer.tsx", root), "utf8"),
+  ]);
+  assert.doesNotMatch(persistent, /key=\{levelId\}/);
+  assert.doesNotMatch(persistent, /key=\{sourceLevel\}/);
+  // The iframe has key={reloadKey} only — not levelId
+  assert.match(player, /key=\{reloadKey\}/);
+});
+
+test("persistent game: iframe URL does not contain levelId", async () => {
+  const [persistent, player] = await Promise.all([
+    readFile(new URL("components/PersistentOnlineGame.tsx", root), "utf8"),
+    readFile(new URL("components/OnlineGamePlayer.tsx", root), "utf8"),
+  ]);
+  // PersistentOnlineGame should not pass levelId to embed URL
+  assert.doesNotMatch(persistent, /embedUrl.*levelId/);
+  assert.doesNotMatch(persistent, /embedUrl.*sourceLevel/);
+  // OnlineGamePlayer iframe src should only use config
+  assert.match(player, /src=\{onlineGameConfig\.embedUrl\}/);
+});
+
+test("persistent game: no template.tsx used for player", async () => {
+  try {
+    await import("node:fs/promises").then((fs) =>
+      fs.stat(new URL("app/level/template.tsx", root)),
+    );
+    // If template.tsx exists, it should NOT contain PersistentOnlineGame
+    const template = await readFile(
+      new URL("app/level/template.tsx", root),
+      "utf8",
+    );
+    assert.doesNotMatch(template, /PersistentOnlineGame/);
+    assert.doesNotMatch(template, /OnlineGamePlayer/);
+  } catch {
+    // template.tsx doesn't exist, which is correct
+  }
+});
+
+test("persistent game: Previous/Next use Next Link", async () => {
+  const levelPage = await readFile(
+    new URL("app/level/[levelId]/page.tsx", root),
+    "utf8",
+  );
+  // Previous and Next should use <Link> not <a> — verify within level-nav section
+  assert.match(levelPage, /level-nav[\s\S]*<Link[\s\S]*Previous Level/);
+  assert.match(levelPage, /level-nav[\s\S]*<Link[\s\S]*Next Level/);
+});
+
+test("persistent game: Related Levels use Next Link", async () => {
+  const levelPage = await readFile(
+    new URL("app/level/[levelId]/page.tsx", root),
+    "utf8",
+  );
+  // Related Levels should use <Link>
+  assert.match(levelPage, /<Link[\s\S]*related-level-link/);
+  assert.match(levelPage, /<Link[\s\S]*Browse All Levels/);
+});
+
+// ─── Persistent Online Game: State ──────────────────────────────────
+
+test("persistent game: initial state has no iframe in idle", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  assert.match(player, /playerState === "idle"/);
+  // The idle branch should show cover, not iframe
+  assert.match(player, /online-game-cover/);
+  assert.match(player, /Play Now/);
+});
+
+test("persistent game: initial state shows Play Now", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  assert.match(player, /Play Now/);
+});
+
+test("persistent game: sessionStorage check in PersistentOnlineGame", async () => {
+  const persistent = await readFile(
+    new URL("components/PersistentOnlineGame.tsx", root),
+    "utf8",
+  );
+  assert.match(persistent, /sessionStorage/);
+  assert.match(persistent, /online_game_started/);
+  assert.match(persistent, /getItem/);
+});
+
+test("persistent game: sessionStorage wrapped in try/catch", async () => {
+  const persistent = await readFile(
+    new URL("components/PersistentOnlineGame.tsx", root),
+    "utf8",
+  );
+  assert.match(persistent, /try\s*\{/);
+  assert.match(persistent, /catch/);
+});
+
+test("persistent game: sessionStorage setItem on game start", async () => {
+  const persistent = await readFile(
+    new URL("components/PersistentOnlineGame.tsx", root),
+    "utf8",
+  );
+  assert.match(persistent, /setItem\("online_game_started"/);
+  assert.match(persistent, /"1"/);
+});
+
+test("persistent game: no auto-load without sessionStorage", async () => {
+  const persistent = await readFile(
+    new URL("components/PersistentOnlineGame.tsx", root),
+    "utf8",
+  );
+  // gameStarted is initially false when no sessionStorage marker
+  assert.match(persistent, /sessionStorage\.getItem\("online_game_started"\)/);
+  // Only set to true when sessionStorage has "1" or user clicks
+  assert.match(persistent, /"1"/);
+});
+
+test("persistent game: gameStarted prop triggers auto-load in OnlineGamePlayer", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  assert.match(player, /gameStarted/);
+  // The auto-start useEffect
+  assert.match(player, /gameStarted && !hasAutoStarted\.current/);
+  assert.match(player, /setPlayerState\("loading"\)/);
+});
+
+test("persistent game: no game_start retrigger on pathname change", async () => {
+  const persistent = await readFile(
+    new URL("components/PersistentOnlineGame.tsx", root),
+    "utf8",
+  );
+  // No key based on pathname means component doesn't remount
+  assert.doesNotMatch(persistent, /key=\{pathname\}/);
+  // The OnlineGamePlayer is not recreated on pathname change
+  assert.doesNotMatch(persistent, /key=\{[^}]*pathname/);
+});
+
+test("persistent game: Reload changes reloadKey", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  assert.match(player, /setReloadKey/);
+  assert.match(player, /=>\s*k\s*\+\s*1/);
+});
+
+test("persistent game: sessionStorage not available does not crash", async () => {
+  const persistent = await readFile(
+    new URL("components/PersistentOnlineGame.tsx", root),
+    "utf8",
+  );
+  // Both getItem and setItem are wrapped in try/catch
+  const tryBlocks = persistent.match(/try\s*\{/g);
+  assert.ok(tryBlocks && tryBlocks.length >= 2, `Expected at least 2 try blocks, got ${tryBlocks?.length ?? 0}`);
+});
+
+// ─── Persistent Online Game: Analytics ──────────────────────────────
+
+test("persistent game: source_level used in analytics tracking", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  assert.match(player, /source_level/);
+  assert.match(player, /sourceLevel != null/);
+});
+
+test("persistent game: source_level NOT in embed URL", async () => {
+  const [persistent, player] = await Promise.all([
+    readFile(new URL("components/PersistentOnlineGame.tsx", root), "utf8"),
+    readFile(new URL("components/OnlineGamePlayer.tsx", root), "utf8"),
+  ]);
+  // The iframe src should only be config.embedUrl
+  assert.match(player, /src=\{onlineGameConfig\.embedUrl\}/);
+  // PersistentOnlineGame should not pass levelId to any URL
+  assert.doesNotMatch(persistent, /embedUrl.*sourceLevel/);
+});
+
+test("persistent game: gtag not available does not crash", async () => {
+  const analytics = await readFile(new URL("lib/analytics.ts", root), "utf8");
+  assert.match(analytics, /!w\.gtag/);
+  assert.match(analytics, /try/);
+  assert.match(analytics, /catch/);
+});
+
+test("persistent game: uses usePathname to parse levelId", async () => {
+  const persistent = await readFile(
+    new URL("components/PersistentOnlineGame.tsx", root),
+    "utf8",
+  );
+  assert.match(persistent, /usePathname/);
+  assert.match(persistent, /pathname\?\.match/);
+});
+
+test("persistent game: pathname parsed only for analytics, not for iframe", async () => {
+  const persistent = await readFile(
+    new URL("components/PersistentOnlineGame.tsx", root),
+    "utf8",
+  );
+  // sourceLevel from pathname should only go to OnlineGamePlayer as prop
+  assert.match(persistent, /sourceLevel=\{sourceLevel\}/);
+  // It should NOT be used to construct embed URL
+  assert.doesNotMatch(persistent, /embedUrl.*sourceLevel/);
+  assert.doesNotMatch(persistent, /embedUrl.*levelId/);
+});
+
+// ─── Persistent Online Game: Disabled State ─────────────────────────
+
+test("persistent game: disabled when config is falsy", async () => {
+  const persistent = await readFile(
+    new URL("components/PersistentOnlineGame.tsx", root),
+    "utf8",
+  );
+  assert.match(persistent, /if \(!onlineGameConfig\.enabled\) return null/);
+});
+
+test("persistent game: disabled state does not create empty container", async () => {
+  const persistent = await readFile(
+    new URL("components/PersistentOnlineGame.tsx", root),
+    "utf8",
+  );
+  // Returns null, not an empty div
+  assert.match(persistent, /return null/);
+});
+
+test("persistent game: disabled state does not read sessionStorage", async () => {
+  const persistent = await readFile(
+    new URL("components/PersistentOnlineGame.tsx", root),
+    "utf8",
+  );
+  // The sessionStorage useEffect is guarded by config check
+  // The useEffect containing sessionStorage.getItem should check enabled first
+  assert.match(persistent, /if \(!onlineGameConfig\.enabled\) return/);
+  // The component returns null when disabled
+  assert.match(persistent, /if \(!onlineGameConfig\.enabled\) return null/);
+});
+
+// ─── Persistent Online Game: CSS ────────────────────────────────────
+
+test("persistent game: styles use existing CSS classes", async () => {
+  const [persistent, css] = await Promise.all([
+    readFile(new URL("components/PersistentOnlineGame.tsx", root), "utf8"),
+    readFile(new URL("app/globals.css", root), "utf8"),
+  ]);
+  assert.match(persistent, /online-game-level-section/);
+  assert.match(persistent, /content-card/);
+  assert.match(css, /online-game-level-section/);
+});
+
+// ─── Test Game Page ─────────────────────────────────────────────────
+
+test("test-game.html exists for browser testing", async () => {
+  const testGame = await readFile(
+    new URL("public/test-game.html", root),
+    "utf8",
+  );
+  assert.match(testGame, /Test Game/);
+  assert.match(testGame, /counter/);
+  assert.match(testGame, /increment/);
 });

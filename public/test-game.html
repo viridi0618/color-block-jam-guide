@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Game - Counter</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #1a1a2e;
+      color: #eee;
+      gap: 20px;
+    }
+    h1 { font-size: 1.5rem; }
+    .counter { font-size: 3rem; font-weight: 700; color: #ffd700; }
+    button {
+      min-height: 48px;
+      padding: 12px 32px;
+      border: none;
+      border-radius: 12px;
+      background: #e94560;
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: #c23152; }
+    .status { font-size: 0.85rem; color: #aaa; }
+  </style>
+</head>
+<body>
+  <h1>🧪 Test Game</h1>
+  <p class="status">This page preserves state in memory. If you see the counter at 3 after navigation, iframe persistence works.</p>
+  <span class="counter" id="counter">0</span>
+  <button id="increment" type="button">+1</button>
+  <script>
+    let count = 0;
+    const counterEl = document.getElementById("counter");
+    document.getElementById("increment").addEventListener("click", () => {
+      count++;
+      counterEl.textContent = count;
+    });
+  </script>
+</body>
+</html>
