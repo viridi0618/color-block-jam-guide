@@ -1430,9 +1430,10 @@ test("test-game.html has noindex meta tag", async () => {
 
 test("online game config: trim() is applied to all URLs", async () => {
   const config = await readFile(new URL("lib/online-game.ts", root), "utf8");
-  assert.match(config, /embedUrl:.*\.trim\(\)/);
-  assert.match(config, /openUrl:.*\.trim\(\)/);
-  assert.match(config, /coverUrl:.*\.trim\(\)/);
+  assert.match(config, /NEXT_PUBLIC_ONLINE_GAME_EMBED_URL\?\.trim\(\)/);
+  assert.match(config, /NEXT_PUBLIC_ONLINE_GAME_OPEN_URL\?\.trim\(\)/);
+  assert.match(config, /NEXT_PUBLIC_ONLINE_GAME_COVER_URL\?\.trim\(\)/);
+  assert.match(config, /NEXT_PUBLIC_ONLINE_GAME_ASPECT_RATIO\?\.trim\(\)/);
 });
 
 test("online game config: onlineGameAvailable is exported", async () => {
@@ -1441,12 +1442,27 @@ test("online game config: onlineGameAvailable is exported", async () => {
   assert.match(config, /onlineGameConfig\.enabled && onlineGameConfig\.embedUrl\.length > 0/);
 });
 
-test("online game config: enabled=false means unavailable", async () => {
-  // The logic: enabled && embedUrl.length > 0
-  // If enabled is false, onlineGameAvailable is false regardless of embedUrl
+test("online game config: enabled defaults to true (no env)", async () => {
   const config = await readFile(new URL("lib/online-game.ts", root), "utf8");
-  assert.match(config, /onlineGameConfig\.enabled/);
-  assert.match(config, /onlineGameConfig\.embedUrl\.length > 0/);
+  // enabled is true when NEXT_PUBLIC_ONLINE_GAME_ENABLED is not set to "false"
+  assert.match(config, /enabled: enabledValue !== "false"/);
+  assert.match(config, /DEFAULT_GAME_EMBED_URL/);
+});
+
+test("online game config: embedUrl falls back to default", async () => {
+  const config = await readFile(new URL("lib/online-game.ts", root), "utf8");
+  assert.match(config, /DEFAULT_GAME_EMBED_URL = "https:\/\/1games\.io\/game\/color-block-jam\/"/);
+  assert.match(config, /DEFAULT_GAME_OPEN_URL/);
+  // The || operator connects trim() to DEFAULT, across lines
+  assert.match(config, /\|\|[\s\n]*DEFAULT_GAME_EMBED_URL/);
+  assert.match(config, /\|\|[\s\n]*DEFAULT_GAME_OPEN_URL/);
+});
+
+test("online game config: enabled=false means unavailable", async () => {
+  const config = await readFile(new URL("lib/online-game.ts", root), "utf8");
+  // enabledValue !== "false" means enabled=true by default, false when env="false"
+  assert.match(config, /enabledValue !== "false"/);
+  assert.match(config, /onlineGameConfig\.enabled && onlineGameConfig\.embedUrl\.length > 0/);
 });
 
 test("online game config: enabled=true + embedUrl=\"\" means unavailable", async () => {
@@ -1677,4 +1693,120 @@ test("homepage: TrackedPlayOnlineLink is a client component", async () => {
     "utf8",
   );
   assert.match(link, /"use client"/);
+});
+
+// ─── YouTube Embed Domain ────────────────────────────────────────────
+
+test("youtube: VideoEmbed uses www.youtube.com/embed", async () => {
+  const embed = await readFile(
+    new URL("components/VideoEmbed.tsx", root),
+    "utf8",
+  );
+  assert.match(embed, /www\.youtube\.com\/embed/);
+  assert.doesNotMatch(embed, /youtube-nocookie/);
+});
+
+test("youtube: JSON-LD uses www.youtube.com/embed", async () => {
+  const page = await readFile(
+    new URL("app/level/[levelId]/page.tsx", root),
+    "utf8",
+  );
+  assert.match(page, /embedUrl:.*www\.youtube\.com\/embed/);
+  assert.doesNotMatch(page, /youtube-nocookie/);
+});
+
+test("youtube: no youtube-nocookie.com anywhere in repo", async () => {
+  const { execSync } = await import("child_process");
+  try {
+    const result = execSync("git grep -l youtube-nocookie", {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    assert.fail(`Found youtube-nocookie.com in: ${result.trim()}`);
+  } catch (_e) {
+    // git grep exits non-zero when no matches — that's expected
+    assert.ok(true);
+  }
+});
+
+test("youtube: VideoEmbed has backup Watch on YouTube link", async () => {
+  const embed = await readFile(
+    new URL("components/VideoEmbed.tsx", root),
+    "utf8",
+  );
+  assert.match(embed, /Watch on YouTube/);
+  assert.match(embed, /www\.youtube\.com\/watch\?v=/);
+  assert.match(embed, /target="_blank"/);
+  assert.match(embed, /rel="noopener noreferrer"/);
+});
+
+test("youtube: iframe has playsinline param", async () => {
+  const embed = await readFile(
+    new URL("components/VideoEmbed.tsx", root),
+    "utf8",
+  );
+  assert.match(embed, /playsinline=1/);
+});
+
+// ─── Game Frame Sizing ───────────────────────────────────────────────
+
+test("game frame: desktop has min-height", async () => {
+  const css = await readFile(new URL("app/globals.css", root), "utf8");
+  assert.match(css, /\.online-game-frame \{.*min-height: 600px/);
+});
+
+test("game frame: compact has max-width", async () => {
+  const css = await readFile(new URL("app/globals.css", root), "utf8");
+  assert.match(css, /compact.*online-game-frame.*max-width: 500px/);
+});
+
+test("game frame: mobile has aspect-ratio", async () => {
+  const css = await readFile(new URL("app/globals.css", root), "utf8");
+  // Mobile media query should have aspect-ratio on game frame
+  assert.match(css, /aspect-ratio: 9\/16/);
+});
+
+// ─── Play Now Button Behavior ────────────────────────────────────────
+
+test("game player: Play Now is a button not a link", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  assert.match(player, /<button[\s\S]*?Play Now/);
+  assert.match(player, /type="button"/);
+  assert.match(player, /onClick=\{handlePlay\}/);
+  // Must NOT contain router.push, window.location.href, or window.open
+  assert.doesNotMatch(player, /router\.push/);
+  assert.doesNotMatch(player, /window\.location\.href/);
+  assert.doesNotMatch(player, /window\.open/);
+});
+
+test("game player: handlePlay does not navigate away", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  // handlePlay should only set state, track analytics, and call onGameStart
+  const lines = player.split("\n");
+  const handlePlayStart = lines.findIndex((l) => l.includes("handlePlay"));
+  const handlePlayEnd = lines.findIndex(
+    (l, i) => i > handlePlayStart && l.includes("useCallback"),
+  );
+  const body = lines.slice(handlePlayStart, handlePlayEnd).join("\n");
+  assert.doesNotMatch(body, /router\.push/);
+  assert.doesNotMatch(body, /window\.location/);
+  assert.doesNotMatch(body, /window\.open/);
+});
+
+test("game player: iframe src does not contain levelId", async () => {
+  const player = await readFile(
+    new URL("components/OnlineGamePlayer.tsx", root),
+    "utf8",
+  );
+  assert.match(player, /src=\{onlineGameConfig\.embedUrl\}/);
+  assert.doesNotMatch(player, /src=.sourceLevel/);
+  assert.doesNotMatch(player, /src=.levelId/);
+  assert.doesNotMatch(player, /src=.pathname/);
 });

@@ -342,3 +342,63 @@ test.describe("Analytics Events", () => {
     expect(homeEvent?.[2]?.source_page).toBe("home");
   });
 });
+
+// ─── URL Stability Tests ─────────────────────────────────────────────
+
+test.describe("URL Stability", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript({ content: analyticsMockScript() });
+  });
+
+  test("Play Now on /play-online does not change URL", async ({ page }) => {
+    await page.goto("/play-online");
+    await page.waitForSelector("h1");
+
+    const urlBefore = page.url();
+    await page.getByRole("button", { name: "Play Now" }).click();
+    await page.waitForSelector(GAME_IFRAME);
+
+    const urlAfter = page.url();
+    expect(urlAfter).toBe(urlBefore);
+    expect(urlAfter).toContain("/play-online");
+  });
+
+  test("Play Now on /level/16 does not change URL", async ({ page }) => {
+    await page.goto("/level/16");
+    await page.waitForSelector("h1");
+
+    const urlBefore = page.url();
+    await page.getByRole("button", { name: "Play Now" }).click();
+    await page.waitForSelector(GAME_IFRAME);
+
+    const urlAfter = page.url();
+    expect(urlAfter).toBe(urlBefore);
+    expect(urlAfter).toContain("/level/16");
+  });
+
+  test("game frame visible on /play-online", async ({ page }) => {
+    await page.goto("/play-online");
+    await page.waitForSelector("h1");
+
+    // Game shell should be visible
+    const gameShell = page.locator(".online-game-shell");
+    await expect(gameShell).toBeVisible();
+
+    // Play Now button should be visible
+    const playNow = page.getByRole("button", { name: "Play Now" });
+    await expect(playNow).toBeVisible();
+  });
+
+  test("game frame visible on /level/16", async ({ page }) => {
+    await page.goto("/level/16");
+    await page.waitForSelector("h1");
+
+    // Compact game shell should be visible on level page
+    const gameShell = page.locator(".online-game-shell--compact");
+    await expect(gameShell).toBeVisible();
+
+    // Play Now button should be visible
+    const playNow = page.getByRole("button", { name: "Play Now" });
+    await expect(playNow).toBeVisible();
+  });
+});

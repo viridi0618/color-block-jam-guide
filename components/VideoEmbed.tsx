@@ -11,11 +11,12 @@ export function VideoEmbed({ video }: { video: WalkthroughVideo }) {
     <div className="video-card">
       <div className={`video-frame ${ratioClass[video.aspectRatio]}`}>
         <iframe
-          src={`https://www.youtube-nocookie.com/embed/${video.videoId}?rel=0`}
+          src={`https://www.youtube.com/embed/${video.videoId}?rel=0&playsinline=1`}
           title={video.title}
-          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           referrerPolicy="strict-origin-when-cross-origin"
           allowFullScreen
+          loading="lazy"
         />
       </div>
       <div className="video-caption">
@@ -26,6 +27,16 @@ export function VideoEmbed({ video }: { video: WalkthroughVideo }) {
           <span>{Math.floor(video.durationSeconds / 60)} min walkthrough</span>
         ) : null}
       </div>
+      <p className="video-backup-link">
+        Video not loading?{" "}
+        <a
+          href={`https://www.youtube.com/watch?v=${video.videoId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Watch on YouTube
+        </a>
+      </p>
     </div>
   );
 }
