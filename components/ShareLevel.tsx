@@ -15,13 +15,19 @@ export function ShareLevel({ levelId, canonicalUrl, compact = false }: { levelId
   }
   async function share() {
     setMessage("");
+    if (!navigator.share) {
+      await copyLink();
+      return;
+    }
     try {
-      if (navigator.share) {
-        await navigator.share({ title, text: title, url: canonicalUrl });
+      await navigator.share({ title, text: title, url: canonicalUrl });
+      // Share succeeded: do not copy
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        // User cancelled: do nothing
         return;
       }
-      await copyLink();
-    } catch {
+      // Other share errors: fallback to copy
       await copyLink();
     }
   }
