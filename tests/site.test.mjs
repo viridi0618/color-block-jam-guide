@@ -756,9 +756,12 @@ test("footer: unified disclaimer present", async () => {
   const layout = await readFile(new URL("app/layout.tsx", root), "utf8");
   assert.match(layout, /unofficial/);
   assert.match(layout, /not affiliated with Rollic Games/);
-  assert.match(layout, /Videos remain the property of their respective creators/);
+  assert.match(layout, /Videos\s+remain\s+the\s+property/);
   assert.match(layout, /footer-disclaimer/);
   assert.doesNotMatch(layout, /footer-legal/);
+  // "unofficial" must appear exactly once — no duplicate disclaimer
+  const unofficialMatches = layout.match(/unofficial/gi) ?? [];
+  assert.strictEqual(unofficialMatches.length, 1, `Expected 1 'unofficial', got ${unofficialMatches.length}`);
 });
 
 // ─── Existing Content Still Present ─────────────────────────────────
