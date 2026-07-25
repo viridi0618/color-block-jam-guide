@@ -56,6 +56,24 @@ export default function Home() {
       </section>
 
       <section className="home-section shell">
+        <div className="play-online-home-card">
+          <div className="play-online-home-card-content">
+            <p className="kicker">Take a Puzzle Break</p>
+            <h2>Play Color Block Jam Online</h2>
+            <p>Start a quick browser puzzle game.</p>
+            <Link href="/play-online" className="primary-button">Play Online</Link>
+          </div>
+          <div className="play-online-home-card-visual" aria-hidden="true">
+            <span className="brand-mark">
+              <i />
+              <i />
+              <i />
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section className="home-section shell">
         <div className="section-heading"><div><p className="kicker">Pick a chapter</p><h2>Browse by Level Range</h2></div></div>
         <LevelRanges ranges={levelRanges.slice(0, 8)} compact />
         <Link className="center-link" href="/levels">Browse All Levels →</Link>
