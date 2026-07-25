@@ -13,17 +13,12 @@ export const metadata: Metadata = {
     "Find Color Block Jam level walkthrough videos by level number.",
   openGraph: {
     type: "website",
+    locale: "en_US",
     siteName: "Color Block Jam Guide",
-    title: "Color Block Jam Level Walkthroughs & Solutions",
-    description:
-      "Find the level you need and watch a matched walkthrough video.",
     images: ["/og-v2.png"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Color Block Jam Level Walkthroughs & Solutions",
-    description:
-      "Find the level you need and watch a matched walkthrough video.",
     images: ["/og-v2.png"],
   },
 };
