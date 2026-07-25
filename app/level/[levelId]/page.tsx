@@ -5,6 +5,7 @@ import { AlternativeVideo } from "@/components/AlternativeVideo";
 import { ShareLevel } from "@/components/ShareLevel";
 import { VideoEmbed } from "@/components/VideoEmbed";
 import { getAdjacentLevels, getLevel, getRangeForLevel, levels } from "@/lib/levels";
+import { getRelatedLevels } from "@/lib/internal-links";
 import { siteUrl } from "@/lib/site-url";
 
 export const dynamicParams = false;
@@ -55,6 +56,7 @@ export default async function LevelPage({ params }: { params: Promise<{ levelId:
       { "@type": "ListItem", position: 4, name: `Level ${levelId}`, item: canonicalUrl },
     ],
   };
+  const relatedLevels = getRelatedLevels(levelId);
   return (
     <main className="shell page-shell level-page">
       <nav className="breadcrumbs" aria-label="Breadcrumb">
@@ -106,6 +108,24 @@ export default async function LevelPage({ params }: { params: Promise<{ levelId:
         <p><Link className="text-link" href={range.slug}>More levels in {range.start}–{range.end} →</Link></p>
         <p><Link className="text-link" href="/levels">All Color Block Jam Level Walkthroughs</Link></p>
       </section>
+      {relatedLevels.length > 0 ? (
+        <section className="content-card related-levels-card">
+          <h2>More Levels to Explore</h2>
+          <nav aria-label="Related level walkthroughs" className="related-levels-nav">
+            {relatedLevels.map((rl) => (
+              <Link key={rl.levelId} href={rl.href} className="related-level-link">
+                {rl.label}
+              </Link>
+            ))}
+            <Link href={range.slug} className="related-level-link range-link">
+              Levels {range.start}–{range.end}
+            </Link>
+            <Link href="/levels" className="related-level-link all-link">
+              Browse All Levels
+            </Link>
+          </nav>
+        </section>
+      ) : null}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
     </main>

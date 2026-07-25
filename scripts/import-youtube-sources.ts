@@ -384,26 +384,6 @@ const levels = Array.from(byLevel.entries())
       }
     }
 
-    // Check VideoObject fields
-    if (primary && !primary.publishedAt) {
-      conflicts.push({
-        type: "missing_published_at",
-        severity: "warning",
-        levelId,
-        videoId: primary.videoId,
-        reason: `Level ${levelId} primary video has no publishedAt`,
-      });
-    }
-    if (primary && primary.durationSeconds == null) {
-      conflicts.push({
-        type: "missing_duration",
-        severity: "warning",
-        levelId,
-        videoId: primary.videoId,
-        reason: `Level ${levelId} primary video has no duration`,
-      });
-    }
-
     return {
       levelId,
       slug: `/level/${levelId}`,

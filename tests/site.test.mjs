@@ -449,3 +449,145 @@ test("rejected-ranges.json is written", async () => {
     assert.ok(r.reason);
   }
 });
+
+// ─── Footer Internal Links ─────────────────────────────────────────
+
+test("footer: featured levels are all approved", async () => {
+  const { getFeaturedLevels } = await import("../lib/internal-links.ts");
+  const featured = getFeaturedLevels();
+  assert.ok(featured.length >= 12, `Expected at least 12 featured levels, got ${featured.length}`);
+  assert.ok(featured.length <= 16, `Expected at most 16 featured levels, got ${featured.length}`);
+
+  // All must be approved
+  const levels = JSON.parse(
+    await readFile(new URL("data/levels/all-levels.json", root), "utf8"),
+  );
+  const approvedIds = new Set(levels.map((l) => l.levelId));
+  for (const f of featured) {
+    assert.ok(approvedIds.has(f.levelId), `Featured level ${f.levelId} is not approved`);
+  }
+
+  // No duplicates
+  const ids = featured.map((f) => f.levelId);
+  assert.strictEqual(new Set(ids).size, ids.length, "Featured levels contain duplicates");
+});
+
+test("footer: featured ranges are all from real levelRanges", async () => {
+  const { getFeaturedRanges } = await import("../lib/internal-links.ts");
+  const featured = getFeaturedRanges();
+  assert.ok(featured.length >= 8, `Expected at least 8 featured ranges, got ${featured.length}`);
+  assert.ok(featured.length <= 12, `Expected at most 12 featured ranges, got ${featured.length}`);
+
+  // No duplicates
+  const starts = featured.map((r) => r.start);
+  assert.strictEqual(new Set(starts).size, starts.length, "Featured ranges contain duplicates");
+
+  // All must have valid slugs
+  for (const r of featured) {
+    assert.ok(r.href.startsWith("/levels/"), `Range href ${r.href} does not start with /levels/`);
+    assert.ok(r.start > 0, `Range start ${r.start} is not positive`);
+    assert.ok(r.end >= r.start, `Range end ${r.end} < start ${r.start}`);
+  }
+});
+
+test("footer layout contains Featured Level Walkthroughs section", async () => {
+  const layout = await readFile(new URL("app/layout.tsx", root), "utf8");
+  assert.match(layout, /Featured Level Walkthroughs/);
+  assert.match(layout, /Browse by Level Range/);
+  assert.match(layout, /getFeaturedLevels/);
+  assert.match(layout, /getFeaturedRanges/);
+  // Original links still exist
+  assert.match(layout, /\/download/);
+  assert.match(layout, /\/faq/);
+  assert.match(layout, /\/privacy/);
+});
+
+// ─── Related Levels (deterministic) ─────────────────────────────────
+
+test("related levels: same levelId returns same results", async () => {
+  const { getRelatedLevels } = await import("../lib/internal-links.ts");
+  const result1 = getRelatedLevels(340);
+  const result2 = getRelatedLevels(340);
+  assert.deepStrictEqual(result1, result2, "getRelatedLevels is not deterministic");
+});
+
+test("related levels: does not include current level", async () => {
+  const { getRelatedLevels } = await import("../lib/internal-links.ts");
+  const result = getRelatedLevels(16);
+  const self = result.find((r) => r.levelId === 16);
+  assert.strictEqual(self, undefined, "Self-referencing link found");
+});
+
+test("related levels: no duplicate levelIds", async () => {
+  const { getRelatedLevels } = await import("../lib/internal-links.ts");
+  const result = getRelatedLevels(100);
+  const ids = result.map((r) => r.levelId);
+  assert.strictEqual(new Set(ids).size, ids.length, "Duplicate levelIds in related levels");
+});
+
+test("related levels: all are approved", async () => {
+  const { getRelatedLevels } = await import("../lib/internal-links.ts");
+  const levels = JSON.parse(
+    await readFile(new URL("data/levels/all-levels.json", root), "utf8"),
+  );
+  const approvedIds = new Set(levels.map((l) => l.levelId));
+  const result = getRelatedLevels(50);
+  for (const r of result) {
+    assert.ok(approvedIds.has(r.levelId), `Related level ${r.levelId} not approved`);
+  }
+});
+
+test("related levels: does not exceed max count", async () => {
+  const { getRelatedLevels } = await import("../lib/internal-links.ts");
+  const result = getRelatedLevels(500, 8);
+  assert.ok(result.length <= 8, `Expected at most 8, got ${result.length}`);
+});
+
+test("related levels: includes at least one neighbor", async () => {
+  const { getRelatedLevels } = await import("../lib/internal-links.ts");
+  const result = getRelatedLevels(340);
+  const neighborBelow = result.find((r) => r.levelId < 340);
+  const neighborAbove = result.find((r) => r.levelId > 340);
+  assert.ok(neighborBelow || neighborAbove, "No neighbor found in related levels");
+});
+
+test("related levels: different levels get different results", async () => {
+  const { getRelatedLevels } = await import("../lib/internal-links.ts");
+  const r1 = getRelatedLevels(100).map((r) => r.levelId);
+  const r2 = getRelatedLevels(500).map((r) => r.levelId);
+  // They should not be identical
+  const same = r1.length === r2.length && r1.every((id, i) => id === r2[i]);
+  assert.ok(!same, "Level 100 and 500 got identical related levels");
+});
+
+test("related levels: Level 1 boundary does not crash", async () => {
+  const { getRelatedLevels } = await import("../lib/internal-links.ts");
+  const result = getRelatedLevels(1);
+  assert.ok(Array.isArray(result));
+  assert.ok(!result.some((r) => r.levelId === 1), "Self-referencing at boundary");
+});
+
+test("related levels: last level boundary does not crash", async () => {
+  const { getRelatedLevels } = await import("../lib/internal-links.ts");
+  const levels = JSON.parse(
+    await readFile(new URL("data/levels/all-levels.json", root), "utf8"),
+  );
+  const lastId = levels[levels.length - 1].levelId;
+  const result = getRelatedLevels(lastId);
+  assert.ok(Array.isArray(result));
+  assert.ok(!result.some((r) => r.levelId === lastId), "Self-referencing at boundary");
+});
+
+test("related levels: does not use Math.random", async () => {
+  const { getRelatedLevels } = await import("../lib/internal-links.ts");
+  const source = getRelatedLevels.toString();
+  assert.doesNotMatch(source, /Math\.random/);
+});
+
+test("level page includes related levels section", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.match(levelPage, /getRelatedLevels/);
+  assert.match(levelPage, /More Levels to Explore/);
+  assert.match(levelPage, /related-levels-nav/);
+  assert.match(levelPage, /Browse All Levels/);
+});
