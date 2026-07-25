@@ -157,6 +157,8 @@ h2 { margin-bottom: 0; font-size: clamp(1.8rem, 4vw, 2.7rem); }
 .video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .video-caption { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 17px; color: var(--text-soft); font-size: .9rem; }
 .video-caption strong { color: var(--heading); }
+.video-backup-link { margin: 0; padding: 0 17px 14px; font-size: .85rem; color: var(--text-soft); }
+.video-backup-link a { color: var(--purple-deep); font-weight: 600; }
 .share-level { position: relative; min-height: 64px; display: flex; align-items: center; justify-content: flex-start; margin: 12px 0; }
 .share-level.compact { justify-content: flex-start; margin: 4px 0 14px; }
 .share-button { gap: 8px; padding: 0 18px; border-color: #e2d6f1; background: var(--surface-lavender); color: var(--purple-deep); }
@@ -217,7 +219,8 @@ h2 { margin-bottom: 0; font-size: clamp(1.8rem, 4vw, 2.7rem); }
 .online-game-shell--compact h2 { font-size: 1.3rem; margin-bottom: 6px; }
 .online-game-intro { margin-bottom: 16px; color: var(--text-soft); }
 .online-game-cover { display: flex; flex-direction: column; align-items: center; gap: 16px; }
-.online-game-frame { position: relative; width: 100%; overflow: hidden; border-radius: 24px; background: #111; }
+.online-game-frame { position: relative; width: 100%; max-width: 900px; min-height: 600px; overflow: hidden; border-radius: 24px; background: #111; }
+.online-game-shell--compact .online-game-frame { max-width: 500px; min-height: 500px; }
 .online-game-cover-img { width: 100%; height: 100%; object-fit: cover; }
 .online-game-cover-placeholder { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: linear-gradient(135deg, var(--surface-lavender), var(--surface-pink)); color: var(--heading); font-family: var(--font-fredoka), Fredoka, sans-serif; font-weight: 700; font-size: 1.3rem; }
 .online-game-cover-placeholder span:first-child { font-size: 3rem; }
@@ -296,7 +299,7 @@ h2 { margin-bottom: 0; font-size: clamp(1.8rem, 4vw, 2.7rem); }
   .alternative-preview { grid-template-columns: 108px 1fr; font-size: .9rem; }
   .alternative-preview img { width: 108px; height: 72px; }
   .related-level-link { font-size: .84rem; padding: 7px 11px; min-height: 38px; }
-  .online-game-frame { border-radius: 20px; }
+  .online-game-frame { border-radius: 20px; min-height: 520px; aspect-ratio: 9/16; }
   .online-game-controls { gap: 6px; }
   .online-game-ctrl-btn { min-height: 40px; padding: 6px 12px; font-size: .84rem; }
   .play-online-home-card { grid-template-columns: 1fr; gap: 16px; padding: 24px; text-align: center; }

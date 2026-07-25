@@ -44,7 +44,7 @@ export default async function LevelPage({ params }: { params: Promise<{ levelId:
     description: `Color Block Jam Level ${levelId} video walkthrough from ${video.channelTitle}.`,
     thumbnailUrl: [video.thumbnailUrl],
     ...(video.publishedAt ? { uploadDate: video.publishedAt } : {}),
-    embedUrl: `https://www.youtube-nocookie.com/embed/${video.videoId}`,
+    embedUrl: `https://www.youtube.com/embed/${video.videoId}`,
   };
   const breadcrumbSchema = {
     "@context": "https://schema.org",
