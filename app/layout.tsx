@@ -7,7 +7,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   icons: {
-    icon: "/favicon.svg",
+    icon: [
+      { url: "/favicon.ico", sizes: "16x16" },
+      { url: "/favicon.png", sizes: "32x32" },
+    ],
   },
   title: {
     default: "Color Block Jam Level Walkthroughs & Solutions",
