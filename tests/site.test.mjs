@@ -537,10 +537,11 @@ test("related levels: all are approved", async () => {
   }
 });
 
-test("related levels: does not exceed max count", async () => {
+test("related levels: total count is 8-10", async () => {
   const { getRelatedLevels } = await import("../lib/internal-links.ts");
-  const result = getRelatedLevels(500, 8);
-  assert.ok(result.length <= 8, `Expected at most 8, got ${result.length}`);
+  const result = getRelatedLevels(500);
+  assert.ok(result.length >= 8, `Expected at least 8, got ${result.length}`);
+  assert.ok(result.length <= 10, `Expected at most 10, got ${result.length}`);
 });
 
 test("related levels: includes at least one neighbor", async () => {
@@ -590,4 +591,80 @@ test("level page includes related levels section", async () => {
   assert.match(levelPage, /More Levels to Explore/);
   assert.match(levelPage, /related-levels-nav/);
   assert.match(levelPage, /Browse All Levels/);
+});
+
+// ─── Related Levels Composition (real constraints) ─────────────────
+
+/** Compute the 50-level range for a given levelId */
+function levelRange(levelId) {
+  const rangeStart = Math.floor((levelId - 1) / 50) * 50 + 1;
+  const rangeEnd = rangeStart + 49;
+  return { rangeStart, rangeEnd };
+}
+
+test("related levels: Level 340 same-range levels <= 4", async () => {
+  const { getRelatedLevels } = await import("../lib/internal-links.ts");
+  const result = getRelatedLevels(340);
+  const { rangeStart, rangeEnd } = levelRange(340);
+  const sameRange = result.filter((r) => r.levelId >= rangeStart && r.levelId <= rangeEnd);
+  assert.ok(
+    sameRange.length <= 4,
+    `Expected at most 4 same-range, got ${sameRange.length}: ${sameRange.map((r) => r.levelId).join(",")}`,
+  );
+});
+
+test("related levels: Level 340 has at least 2 distant levels", async () => {
+  const { getRelatedLevels } = await import("../lib/internal-links.ts");
+  const result = getRelatedLevels(340);
+  const { rangeStart, rangeEnd } = levelRange(340);
+  const distant = result.filter((r) => r.levelId < rangeStart || r.levelId > rangeEnd);
+  assert.ok(
+    distant.length >= 2,
+    `Expected at least 2 distant, got ${distant.length}: ${distant.map((r) => r.levelId).join(",")}`,
+  );
+});
+
+test("related levels: Level 1 has distant levels (boundary)", async () => {
+  const { getRelatedLevels } = await import("../lib/internal-links.ts");
+  const result = getRelatedLevels(1);
+  const { rangeStart, rangeEnd } = levelRange(1);
+  const distant = result.filter((r) => r.levelId < rangeStart || r.levelId > rangeEnd);
+  assert.ok(
+    distant.length >= 2,
+    `Expected at least 2 distant for Level 1, got ${distant.length}`,
+  );
+});
+
+test("related levels: last approved level has distant levels (boundary)", async () => {
+  const { getRelatedLevels } = await import("../lib/internal-links.ts");
+  const levels = JSON.parse(
+    await readFile(new URL("data/levels/all-levels.json", root), "utf8"),
+  );
+  const lastId = levels[levels.length - 1].levelId;
+  const result = getRelatedLevels(lastId);
+  const { rangeStart, rangeEnd } = levelRange(lastId);
+  const distant = result.filter((r) => r.levelId < rangeStart || r.levelId > rangeEnd);
+  assert.ok(
+    distant.length >= 2,
+    `Expected at least 2 distant for last level ${lastId}, got ${distant.length}`,
+  );
+});
+
+test("related levels: page total links (levels + range + Browse All) <= 12", async () => {
+  const { getRelatedLevels } = await import("../lib/internal-links.ts");
+  const result = getRelatedLevels(340);
+  const totalLinks = result.length + 2; // + range page + All Levels
+  assert.ok(
+    totalLinks <= 12,
+    `Expected total links <= 12, got ${totalLinks} (${result.length} levels + 2 page links)`,
+  );
+  assert.ok(result.length >= 8, `Expected at least 8 level links, got ${result.length}`);
+  assert.ok(result.length <= 10, `Expected at most 10 level links, got ${result.length}`);
+});
+
+test("related levels: same levelId returns identical results (determinism)", async () => {
+  const { getRelatedLevels } = await import("../lib/internal-links.ts");
+  const result1 = getRelatedLevels(340);
+  const result2 = getRelatedLevels(340);
+  assert.deepStrictEqual(result1, result2, "getRelatedLevels is not deterministic");
 });
