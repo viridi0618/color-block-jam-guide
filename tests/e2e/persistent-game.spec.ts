@@ -175,7 +175,7 @@ test.describe("Persistent Game Session", () => {
 
 test.describe("Analytics Events", () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(analyticsMockScript());
+    await page.addInitScript({ content: analyticsMockScript() });
   });
 
   test("game_start does not repeat across navigation", async ({ page }) => {
@@ -312,6 +312,8 @@ test.describe("Analytics Events", () => {
   test("play_online_view fires on /play-online", async ({ page }) => {
     await page.goto("/play-online");
     await page.waitForSelector("h1");
+    // Give useEffect in PlayOnlineViewTracker time to fire
+    await page.waitForTimeout(300);
 
     const events = await getTrackedEvents(page);
     const viewEvent = events.find(
