@@ -6,6 +6,9 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+  icons: {
+    icon: "/favicon.svg",
+  },
   title: {
     default: "Color Block Jam Level Walkthroughs & Solutions",
     template: "%s | Color Block Jam Guide",
