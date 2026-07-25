@@ -5,4 +5,4 @@ export const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ??
   (vercelHost
     ? `https://${vercelHost}`
-    : "https://color-block-jam-guide.vercel.app");
+    : "https://colorblockjam.wiki");

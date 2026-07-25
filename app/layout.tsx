@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import Link from "next/link";
 import { siteUrl } from "@/lib/site-url";
 import "./globals.css";
@@ -38,6 +39,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <meta name="google-site-verification" content="google70d2f5ada7903a5f.html" />
       </head>
       <body>
         <header className="site-header">
@@ -58,6 +60,22 @@ export default function RootLayout({
             </nav>
           </div>
         </header>
+        <Script
+          strategy="afterInteractive"
+          src="https://www.googletagmanager.com/gtag/js?id=G-ZB78Q21ZX9"
+        />
+        <Script
+          id="gtag-init"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-ZB78Q21ZX9');
+            `,
+          }}
+        />
         {children}
         <footer className="site-footer">
           <div className="shell footer-inner">
