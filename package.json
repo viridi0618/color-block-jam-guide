@@ -17,6 +17,7 @@
     "fetch:youtube": "tsx scripts/fetch-youtube-playlist.ts",
     "ingest:youtube": "tsx scripts/import-youtube-sources.ts",
     "check:levels": "tsx scripts/check-levels.ts",
+    "check:aspect-ratio-migration": "tsx scripts/check-aspect-ratio-migration.ts",
     "check:internal-links": "tsx scripts/check-internal-links.ts",
     "db:generate": "drizzle-kit generate"
   },

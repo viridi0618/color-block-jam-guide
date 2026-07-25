@@ -9,7 +9,7 @@
       "priority": 100,
       "role": "primary",
       "qualityStatus": "preferred",
-      "defaultAspectRatio": "16:9",
+      "defaultAspectRatio": "9:16",
       "enabled": true,
       "importFile": "data/import/cheriegaming-main.json",
       "notes": "CherieGaming main Color Block Jam playlist. Exact level labels are parsed from titles."

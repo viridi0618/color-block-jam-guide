@@ -5,8 +5,8 @@ import {
   rankCandidates,
 } from "../lib/level-parser.ts";
 import type { Rankable } from "../lib/level-parser.ts";
-
-type AspectRatio = "16:9" | "9:16" | "4:3";
+import { validateAspectRatioOverrides } from "../lib/aspect-ratio.ts";
+import type { AspectRatio } from "../lib/aspect-ratio.ts";
 type MatchType = "primary-label" | "parenthetical-label";
 type Source = {
   sourceId: string;
@@ -101,6 +101,10 @@ const overrides = await readJson<Record<string, { primaryVideoId?: string }>>(
   "data/overrides/video-selection.json",
 ).catch(() => ({} as Record<string, { primaryVideoId?: string }>));
 
+const aspectRatioOverrides = await readJson<Record<string, AspectRatio>>(
+  "data/overrides/video-aspect-ratio.json",
+).catch(() => ({} as Record<string, AspectRatio>));
+
 const mappings: Candidate[] = [];
 const unmatched: Array<Record<string, unknown>> = [];
 const privateOrDeleted: Array<Record<string, unknown>> = [];
@@ -111,6 +115,9 @@ let rawPlaylistEntries = 0;
 let rangeTitleCount = 0;
 let rejectedRangeCount = 0;
 let rangeExpansions = 0;
+
+// Validate aspect ratio override values
+conflicts.push(...validateAspectRatioOverrides(aspectRatioOverrides));
 
 for (const source of enabled) {
   const imported = await readJson<{ entries?: RawEntry[]; videoMetadata?: Record<string, RawEntry> }>(source.importFile);
@@ -190,7 +197,7 @@ for (const source of enabled) {
           durationSeconds,
           publishedAt,
           thumbnailUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-          aspectRatio: source.defaultAspectRatio,
+          aspectRatio: aspectRatioOverrides[videoId!] ?? source.defaultAspectRatio,
           priority: source.priority,
           matchType: "primary-label",
           mappingGroupId: videoId!,
@@ -215,7 +222,7 @@ for (const source of enabled) {
           durationSeconds,
           publishedAt,
           thumbnailUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-          aspectRatio: source.defaultAspectRatio,
+          aspectRatio: aspectRatioOverrides[videoId!] ?? source.defaultAspectRatio,
           priority: source.priority,
           matchType: index === 0 ? "primary-label" : "parenthetical-label",
           mappingGroupId: videoId!,

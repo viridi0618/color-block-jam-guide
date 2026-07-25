@@ -4,6 +4,8 @@ import test from "node:test";
 
 const root = new URL("../", import.meta.url);
 
+const readJson = async (path) => JSON.parse(await readFile(path, "utf8"));
+
 // ─── Range Parsing Tests (real parser calls) ────────────────────────
 
 test("range parser: Level 1-10 expands to 1 through 10 inclusive", async () => {
@@ -290,7 +292,7 @@ test("mobile publishing requirements are present", async () => {
   assert.match(search, /We don't have a walkthrough for Level/);
   assert.match(css, /min-height:\s*52px/);
   assert.match(css, /env\(safe-area-inset-bottom\)/);
-  assert.match(css, /max-width:\s*430px/);
+  assert.match(css, /min\(100%,\s*480px\)/);
   assert.doesNotMatch(ranges, /openRange|aria-expanded|>\+<|>−</);
   assert.doesNotMatch(layout, /codex-preview|SkeletonPreview/);
   assert.match(share, /navigator\.share/);
@@ -701,24 +703,23 @@ test("video source: no Video source card on level page", async () => {
   assert.doesNotMatch(levelPage, /source-card/);
 });
 
-test("video source: attribution line with dynamic channelTitle", async () => {
+test("video source: attribution line removed from level page", async () => {
   const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
-  assert.match(levelPage, /Video walkthrough by/);
-  assert.match(levelPage, /video\.channelTitle/);
-  assert.match(levelPage, /video\.videoId/);
-  assert.match(levelPage, /youtube\.com\/watch/);
-  assert.match(levelPage, /on YouTube/);
+  assert.doesNotMatch(levelPage, /Video walkthrough by/);
+  assert.doesNotMatch(levelPage, /on YouTube/);
 });
 
-test("video source: YouTube link uses target blank and noopener", async () => {
+test("video source: VideoObject schema still contains channelTitle", async () => {
   const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
-  assert.match(levelPage, /target="_blank"/);
-  assert.match(levelPage, /rel="noopener noreferrer"/);
+  assert.match(levelPage, /channelTitle/);
+  assert.match(levelPage, /videoId/);
+  assert.match(levelPage, /VideoObject/);
+  assert.match(levelPage, /embedUrl/);
 });
 
-test("video source: attribution uses .video-attribution CSS class", async () => {
+test("video source: attribution CSS class removed from level page", async () => {
   const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
-  assert.match(levelPage, /video-attribution/);
+  assert.doesNotMatch(levelPage, /video-attribution/);
 });
 
 // ─── Footer Unified Disclaimer ──────────────────────────────────────
@@ -1001,8 +1002,8 @@ test("level page: existing content preserved", async () => {
   assert.match(levelPage, /ShareLevel/);
   assert.match(levelPage, /AlternativeVideo/);
   assert.match(levelPage, /getRelatedLevels/);
-  assert.match(levelPage, /video-attribution/);
-  assert.match(levelPage, /Video walkthrough by/);
+  assert.match(levelPage, /VideoObject/);
+  assert.match(levelPage, /BreadcrumbList/);
 });
 
 // ─── Homepage Online Game ───────────────────────────────────────────
@@ -1014,11 +1015,12 @@ test("homepage: renders OnlineGamePlayer with compact", async () => {
   assert.match(home, /compact/);
 });
 
-test("homepage: has Play Color Block Jam Online section", async () => {
+test("homepage: has Play Color Block Jam Online section with OnlineGameHeading", async () => {
   const home = await readFile(new URL("app/page.tsx", root), "utf8");
   assert.match(home, /Play Color Block Jam Online/);
-  assert.match(home, /Take a Puzzle Break/);
-  assert.match(home, /without leaving this page/);
+  assert.match(home, /OnlineGameHeading/);
+  assert.match(home, /Play in Your Browser/);
+  assert.match(home, /return to a level walkthrough/);
 });
 
 test("homepage: no longer uses TrackedPlayOnlineLink", async () => {
@@ -1729,15 +1731,14 @@ test("youtube: no youtube-nocookie.com anywhere in repo", async () => {
   }
 });
 
-test("youtube: VideoEmbed has backup Watch on YouTube link", async () => {
+test("youtube: VideoEmbed no longer has backup Watch on YouTube link", async () => {
   const embed = await readFile(
     new URL("components/VideoEmbed.tsx", root),
     "utf8",
   );
-  assert.match(embed, /Watch on YouTube/);
-  assert.match(embed, /www\.youtube\.com\/watch\?v=/);
-  assert.match(embed, /target="_blank"/);
-  assert.match(embed, /rel="noopener noreferrer"/);
+  assert.doesNotMatch(embed, /Watch on YouTube/);
+  assert.doesNotMatch(embed, /www\.youtube\.com\/watch\?v=/);
+  assert.doesNotMatch(embed, /Video not loading/);
 });
 
 test("youtube: iframe has playsinline param", async () => {
@@ -2027,4 +2028,167 @@ test("anchor text: homepage uses descriptive /levels link", async () => {
 test("anchor text: level page related section uses descriptive /levels link", async () => {
   const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
   assert.match(levelPage, /Browse All Color Block Jam Levels/);
+});
+
+// ─── Portrait Aspect Ratio ──────────────────────────────────────────
+
+test("aspect ratio: CherieGaming main source default is 9:16", async () => {
+  const sources = await readJson(new URL("data/sources/youtube-sources.json", root));
+  const cherie = sources.sources.find((s) => s.sourceId === "cheriegaming-main-color-block-jam");
+  assert.ok(cherie, "CherieGaming main source should exist");
+  assert.strictEqual(cherie.defaultAspectRatio, "9:16");
+});
+
+test("aspect ratio: video-aspect-ratio.json overrides exist", async () => {
+  const overrides = await readJson(new URL("data/overrides/video-aspect-ratio.json", root));
+  assert.ok(typeof overrides === "object", "overrides should be an object");
+});
+
+test("aspect ratio: import script uses override with fallback", async () => {
+  const script = await readFile(new URL("scripts/import-youtube-sources.ts", root), "utf8");
+  assert.match(script, /aspectRatioOverrides\[videoId!\]\s*\?\?\s*source\.defaultAspectRatio/);
+  assert.match(script, /validateAspectRatioOverrides/);
+  assert.match(script, /from "\.\.\/lib\/aspect-ratio\.ts"/);
+});
+
+test("aspect ratio: validateAspectRatioOverrides rejects invalid ratios", async () => {
+  const { validateAspectRatioOverrides } = await import(
+    new URL("lib/aspect-ratio.ts", root).href
+  );
+  const conflicts = validateAspectRatioOverrides({ "VIDEO_ID": "1:1" });
+  assert.ok(conflicts.length > 0, "should have at least one conflict");
+  assert.strictEqual(conflicts[0].type, "invalid_aspect_ratio_override");
+  assert.strictEqual(conflicts[0].severity, "error");
+});
+
+test("aspect ratio: validateAspectRatioOverrides accepts valid ratios", async () => {
+  const { validateAspectRatioOverrides } = await import(
+    new URL("lib/aspect-ratio.ts", root).href
+  );
+  const conflicts = validateAspectRatioOverrides({ "VIDEO_A": "9:16", "VIDEO_B": "16:9" });
+  assert.strictEqual(conflicts.length, 0, "valid ratios should produce no conflicts");
+});
+
+test("aspect ratio: resolveAspectRatio returns override when present", async () => {
+  const { resolveAspectRatio } = await import(
+    new URL("lib/aspect-ratio.ts", root).href
+  );
+  const result = resolveAspectRatio("VIDEO_X", "9:16", { "VIDEO_X": "16:9" });
+  assert.strictEqual(result, "16:9");
+});
+
+test("aspect ratio: resolveAspectRatio falls back to source default", async () => {
+  const { resolveAspectRatio } = await import(
+    new URL("lib/aspect-ratio.ts", root).href
+  );
+  const result = resolveAspectRatio("VIDEO_X", "9:16", {});
+  assert.strictEqual(result, "9:16");
+});
+
+test("aspect ratio: Level 16 primaryVideo is 9:16", async () => {
+  const levels = await readJson(new URL("data/levels/all-levels.json", root));
+  const level16 = levels.find((l) => l.levelId === 16);
+  assert.ok(level16, "Level 16 should exist");
+  assert.strictEqual(level16.primaryVideo.aspectRatio, "9:16");
+});
+
+test("aspect ratio: sample levels are all 9:16", async () => {
+  const levels = await readJson(new URL("data/levels/all-levels.json", root));
+  const sampleIds = [1, 100, 500, 1000, 1500, 2000, 2600];
+  for (const id of sampleIds) {
+    const level = levels.find((l) => l.levelId === id);
+    assert.ok(level, `Level ${id} should exist`);
+    assert.strictEqual(level.primaryVideo.aspectRatio, "9:16", `Level ${id} should be 9:16`);
+  }
+});
+
+test("aspect ratio: level count unchanged", async () => {
+  const levels = await readJson(new URL("data/levels/all-levels.json", root));
+  assert.strictEqual(levels.length, 2611);
+});
+
+test("aspect ratio: approved count unchanged", async () => {
+  const levels = await readJson(new URL("data/levels/all-levels.json", root));
+  const approved = levels.filter((l) => l.status === "approved");
+  assert.strictEqual(approved.length, 2611);
+});
+
+// ─── Portrait Video Card ────────────────────────────────────────────
+
+test("video card: VideoEmbed adds video-card--portrait for 9:16", async () => {
+  const embed = await readFile(new URL("components/VideoEmbed.tsx", root), "utf8");
+  assert.match(embed, /video-card--portrait/);
+  assert.match(embed, /aspectRatio === "9:16"/);
+  assert.match(embed, /isPortrait/);
+});
+
+test("video card: CSS has video-card--portrait styles", async () => {
+  const css = await readFile(new URL("app/globals.css", root), "utf8");
+  assert.match(css, /\.video-card--portrait\s*\{/);
+  assert.match(css, /margin-inline:\s*auto/);
+});
+
+test("video card: no Video by caption in VideoEmbed", async () => {
+  const embed = await readFile(new URL("components/VideoEmbed.tsx", root), "utf8");
+  assert.doesNotMatch(embed, /Video by/);
+  assert.doesNotMatch(embed, /Video not loading/);
+  assert.doesNotMatch(embed, /video-caption/);
+  assert.doesNotMatch(embed, /video-backup-link/);
+});
+
+test("video card: video-attribution removed from level page", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.doesNotMatch(levelPage, /video-attribution/);
+  assert.doesNotMatch(levelPage, /Video walkthrough by/);
+});
+
+test("video card: VideoObject schema still has embedUrl", async () => {
+  const levelPage = await readFile(new URL("app/level/[levelId]/page.tsx", root), "utf8");
+  assert.match(levelPage, /VideoObject/);
+  assert.match(levelPage, /embedUrl/);
+  assert.match(levelPage, /www\.youtube\.com\/embed/);
+});
+
+// ─── Online Game Heading ────────────────────────────────────────────
+
+test("online game heading: component exists", async () => {
+  const heading = await readFile(new URL("components/OnlineGameHeading.tsx", root), "utf8");
+  assert.match(heading, /OnlineGameHeading/);
+  assert.match(heading, /as: Heading/);
+  assert.match(heading, /online-game-heading-icon/);
+  assert.match(heading, /online-game-heading-play/);
+});
+
+test("online game heading: homepage uses h2", async () => {
+  const home = await readFile(new URL("app/page.tsx", root), "utf8");
+  assert.match(home, /OnlineGameHeading/);
+  assert.match(home, /as="h2"/);
+});
+
+test("online game heading: /play-online uses h1", async () => {
+  const playOnline = await readFile(new URL("app/play-online/page.tsx", root), "utf8");
+  assert.match(playOnline, /OnlineGameHeading/);
+  assert.match(playOnline, /as="h1"/);
+});
+
+test("online game heading: /play-online uses h1 as component prop", async () => {
+  const playOnline = await readFile(new URL("app/play-online/page.tsx", root), "utf8");
+  assert.match(playOnline, /as="h1"/, "OnlineGameHeading should receive as=h1");
+  // Real H1 count is verified by Playwright E2E (portrait-video.spec.ts)
+});
+
+test("online game heading: CSS has heading styles", async () => {
+  const css = await readFile(new URL("app/globals.css", root), "utf8");
+  assert.match(css, /\.online-game-heading\s*\{/);
+  assert.match(css, /\.online-game-heading-icon\s*\{/);
+  assert.match(css, /\.online-game-heading-play\s*\{/);
+  assert.match(css, /\.online-game-heading-copy\s*\{/);
+});
+
+test("online game heading: mobile responsive styles", async () => {
+  const css = await readFile(new URL("app/globals.css", root), "utf8");
+  const mobileSection = css.match(/@media.*max-width: 680px.*?\{([\s\S]*?)\n\}/);
+  assert.ok(mobileSection, "mobile media query should exist");
+  assert.match(mobileSection[1], /online-game-heading-icon/);
+  assert.match(mobileSection[1], /online-game-heading-play/);
 });

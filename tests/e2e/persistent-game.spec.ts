@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 /**
  * E2E tests for persistent game session across level pages.
@@ -15,15 +15,39 @@ import { test, expect } from "@playwright/test";
 // The game iframe has title="Color Block Jam Online" and class "online-game-iframe"
 const GAME_IFRAME = 'iframe[title="Color Block Jam Online"]';
 
-// Install analytics mock before each test
-function analyticsMockScript() {
-  return `window.__trackedEvents = [];
-window.gtag = function() {
-  window.__trackedEvents.push(Array.from(arguments));
-};`;
+// Install analytics mock.
+// Dual-track strategy:
+// 1. A stub window.gtag captures events that fire before the afterInteractive
+//    inline gtag-init script runs (e.g. play_online_view useEffect).
+// 2. A custom dataLayer.push captures events that fire after the inline
+//    script overrides window.gtag (e.g. game_start, play_online_from_home).
+// The external GTM script is blocked to prevent the real GA4 library from
+// replacing the dataLayer implementation.
+async function blockGa4Script(page: Page) {
+  await page.route("**/googletagmanager.com/**", (route) => route.abort());
 }
 
-async function getTrackedEvents(page: { evaluate: (fn: () => unknown) => Promise<unknown> }): Promise<unknown[]> {
+async function setupAnalyticsMock(page: Page) {
+  await page.addInitScript({ content: `window.__trackedEvents = [];
+window.gtag = function() {
+  window.__trackedEvents.push(Array.from(arguments));
+};
+window.dataLayer = [];
+window.dataLayer.push = function() {
+  var args = Array.from(arguments);
+  // The inline GA4 gtag-init script calls dataLayer.push(arguments),
+  // which wraps the Arguments object in another Arguments object.
+  // Flatten: if the only argument is an array-like (not a plain Array), unwrap it.
+  if (args.length === 1 && args[0] && typeof args[0] === 'object' && 'length' in args[0] && !Array.isArray(args[0])) {
+    args = Array.from(args[0]);
+  }
+  window.__trackedEvents.push(args);
+  return Array.prototype.push.apply(this, args);
+};` });
+  await blockGa4Script(page);
+}
+
+async function getTrackedEvents(page: Page): Promise<unknown[]> {
   const result = await page.evaluate(() => {
     const w = window as unknown as { __trackedEvents?: unknown[] };
     return w.__trackedEvents ?? [];
@@ -227,7 +251,7 @@ test.describe("Homepage Game", () => {
 
 test.describe("Analytics Events", () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript({ content: analyticsMockScript() });
+    await setupAnalyticsMock(page);
   });
 
   test("game_start does not repeat across navigation", async ({ page }) => {
@@ -424,7 +448,7 @@ test.describe("Analytics Events", () => {
 
 test.describe("URL Stability", () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript({ content: analyticsMockScript() });
+    await setupAnalyticsMock(page);
   });
 
   test("Play Now on /play-online does not change URL", async ({ page }) => {
@@ -689,7 +713,7 @@ test.describe("Play Now Inside Game Frame", () => {
   });
 
   test("analytics: game_start count does not increase after navigation", async ({ page }) => {
-    await page.addInitScript({ content: analyticsMockScript() });
+    await setupAnalyticsMock(page);
     await page.goto("/level/16");
     await page.waitForSelector("h1");
 

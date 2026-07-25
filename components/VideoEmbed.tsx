@@ -7,8 +7,10 @@ const ratioClass = {
 };
 
 export function VideoEmbed({ video }: { video: WalkthroughVideo }) {
+  const isPortrait = video.aspectRatio === "9:16";
+
   return (
-    <div className="video-card">
+    <div className={isPortrait ? "video-card video-card--portrait" : "video-card"}>
       <div className={`video-frame ${ratioClass[video.aspectRatio]}`}>
         <iframe
           src={`https://www.youtube.com/embed/${video.videoId}?rel=0&playsinline=1`}
@@ -19,24 +21,6 @@ export function VideoEmbed({ video }: { video: WalkthroughVideo }) {
           loading="lazy"
         />
       </div>
-      <div className="video-caption">
-        <span>
-          Video by <strong>{video.channelTitle}</strong>
-        </span>
-        {video.durationSeconds ? (
-          <span>{Math.floor(video.durationSeconds / 60)} min walkthrough</span>
-        ) : null}
-      </div>
-      <p className="video-backup-link">
-        Video not loading?{" "}
-        <a
-          href={`https://www.youtube.com/watch?v=${video.videoId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Watch on YouTube
-        </a>
-      </p>
     </div>
   );
 }
